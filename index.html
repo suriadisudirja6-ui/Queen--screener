@@ -2,197 +2,248 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Queen Screener</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Queen Screener PRO V2</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#090e16;color:#eee;font-family:Arial,sans-serif;padding:16px}
-h1{color:#50d6ad}
-.sub{color:#9ba8b8;font-size:13px}
+h2{color:#50d6ad;margin:8px 0}
+.sub{color:#9ba8b8;font-size:12px}
 .panel{background:#151e2b;padding:14px;border-radius:12px;margin:14px 0}
-button{padding:11px 16px;border:0;border-radius:8px;background:#27394d;color:white;margin:4px}
+button,select,input{padding:12px;background:#202d40;color:white;border:1px solid #40516a;border-radius:7px;margin:4px}
+button{cursor:pointer}
 button.active{background:#168b68}
-input{padding:10px;width:90px;background:#101722;color:white;border:1px solid #46566a;border-radius:7px}
-.stats{display:flex;gap:8px}
-.stat{flex:1;background:#182536;padding:12px;border-radius:9px;text-align:center}
-.stat b{display:block;font-size:20px;margin-top:6px}
-.item{background:#151e2b;padding:13px;margin:9px 0;border-radius:10px;border-left:4px solid #64748b}
-.short{border-color:#f04455}
+#scan{background:#168b68;font-weight:bold;width:100%;padding:15px}
+.stats{display:flex;gap:8px;flex-wrap:wrap}
+.stat{flex:1;min-width:90px;background:#202d40;padding:12px;border-radius:8px}
+.stat b{display:block;font-size:21px;margin-top:5px}
+.item{background:#151e2b;padding:12px;border-radius:9px;margin:9px 0;border-left:4px solid #777}
+.short{border-color:#ff5968}
 .long{border-color:#16c78b}
-.green{color:#16c78b}.red{color:#ff5968}
+.red{color:#ff5968}.green{color:#16c78b}
 small{color:#9ba8b8}
 a{color:#65b9ff}
+table{width:100%;font-size:12px;border-collapse:collapse}
+td,th{padding:8px 4px;text-align:left;border-bottom:1px solid #293548}
+#progress{height:7px;background:#293548;border-radius:8px;overflow:hidden}
+#bar{height:100%;width:0;background:#16c78b}
 </style>
 </head>
 <body>
-<h1>👑 QUEEN SCREENER</h1>
-<div class="sub">BINANCE FUTURES • LONG & SHORT</div>
+
+<h2>👑 QUEEN SCREENER PRO V2</h2>
+<div class="sub">BINANCE FUTURES • QUEEN LIQUIDITY SWEEP</div>
 
 <div class="panel">
-  <div>Volume minimum (24H USDT)</div>
-  <input id="vol" type="number" value="50" min="1"> juta USDT
-  <p>
-  <button id="all" class="active" onclick="setMode('ALL')">ALL</button>
-  <button id="sell" onclick="setMode('SHORT')">SHORT</button>
-  <button id="buy" onclick="setMode('LONG')">LONG</button>
-  </p>
-  <button onclick="scan()">🔄 SCAN SEKARANG</button>
-  <p id="status" class="sub">Siap melakukan pemindaian.</p>
+<b>TIMEFRAME</b><br>
+<select id="tf">
+<option value="4h">4H</option>
+<option value="1h">1H</option>
+<option value="15m">15M</option>
+<option value="1d">1D</option>
+</select>
+<br>
+<b>ARAH SINYAL</b><br>
+<select id="side">
+<option value="ALL">LONG + SHORT</option>
+<option value="SHORT">SHORT saja</option>
+<option value="LONG">LONG saja</option>
+</select>
+<br>
+<b>Panjang struktur</b><br>
+<input id="len" type="number" value="20" min="3" max="100">
+<br>
+<b>Cari koin</b><br>
+<input id="search" placeholder="Contoh: BTC">
+<button id="scan" onclick="startScan()">🔍 MULAI SCAN</button>
+<button onclick="stopScan()">STOP</button>
+<div id="status" class="sub">Siap memindai Binance Futures</div>
+<div id="progress"><div id="bar"></div></div>
 </div>
 
 <div class="stats">
- <div class="stat">SHORT<b class="red" id="ns">0</b></div>
- <div class="stat">LONG<b class="green" id="nl">0</b></div>
- <div class="stat">DIPERIKSA<b id="nt">0</b></div>
+<div class="stat">Dipindai<b id="total">0</b></div>
+<div class="stat">SHORT 🔴<b id="ns">0</b></div>
+<div class="stat">LONG 🟢<b id="nl">0</b></div>
 </div>
 
 <div class="panel">
- <b>HASIL PEMINDAIAN</b>
- <div id="results"><p class="sub">Tekan SCAN SEKARANG untuk mulai.</p></div>
-</div>
-
-<div class="sub">
-Queen Screener v1.0 • Data publik Binance Futures.
-Sinyal adalah kandidat untuk diperiksa manual, bukan instruksi entry.
+<b>HASIL QUEEN</b>
+<div class="sub">Diurutkan berdasarkan kekuatan sweep dan rejection.</div>
+<div id="results">Belum ada hasil scan.</div>
 </div>
 
 <script>
-const API='https://fapi.binance.com';
-let mode='ALL',busy=false;
+const API="https://fapi.binance.com";
+let stopped=false;
+let busy=false;
 
-function setMode(m){
- mode=m;
- ['all','sell','buy'].forEach((id,i)=>{
- document.getElementById(id).classList.toggle(
- 'active',['ALL','SHORT','LONG'][i]===m);
- });
- showResults(window.lastResults||[]);
+const $=id=>document.getElementById(id);
+
+function fmt(n){
+ return Number(n).toPrecision(7);
 }
 
-function ema(data,n){
- let k=2/(n+1),v=data[0];
- for(let i=1;i<data.length;i++)v=data[i]*k+v*(1-k);
- return v;
-}
-
-async function get(url){
- const r=await fetch(API+url);
- if(!r.ok)throw Error('Binance API '+r.status);
- return r.json();
-}
-
-function detect(k){
- // Hanya memakai candle yang sudah tutup
- const c=k.slice(0,-1);
- if(c.length<30)return null;
-
- const last=c[c.length-1];
- const close=+last[4],high=+last[2],low=+last[3];
- const prev=c.slice(-22,-2);
- const top=Math.max(...prev.map(x=>+x[2]));
- const bottom=Math.min(...prev.map(x=>+x[3]));
-
- // Cari breakout sebelumnya dan retest pada candle terakhir
- let short=false,long=false;
- for(let i=Math.max(20,c.length-9);i<c.length-1;i++){
-   const before=c.slice(i-20,i);
-   if(before.length<20)continue;
-   const resistance=Math.max(...before.map(x=>+x[2]));
-   const support=Math.min(...before.map(x=>+x[3]));
-   const candle=c[i];
-
-   if(+candle[4]<support){
-     const level=support;
-     if(high>=level*0.997 && close<level)short=true;
-   }
-   if(+candle[4]>resistance){
-     const level=resistance;
-     if(low<=level*1.003 && close>level)long=true;
-   }
+function atr(data,end,period=14){
+ let trs=[];
+ for(let i=1;i<=end;i++){
+  let h=+data[i][2],l=+data[i][3],pc=+data[i-1][4];
+  trs.push(Math.max(h-l,Math.abs(h-pc),Math.abs(l-pc)));
  }
-
- return {short,long,close,top,bottom};
+ if(trs.length<period)return 0;
+ let a=trs.slice(0,period).reduce((x,y)=>x+y,0)/period;
+ for(let i=period;i<trs.length;i++)
+  a=(a*(period-1)+trs[i])/period;
+ return a;
 }
 
-async function scan(){
+function analyze(data,symbol,period,len){
+ const i=data.length-2;
+ if(i<len+15)return null;
+
+ const c=data[i];
+ const open=+c[1],high=+c[2],low=+c[3],close=+c[4];
+
+ const previous=data.slice(i-len,i);
+ const priorHigh=Math.max(...previous.map(x=>+x[2]));
+ const priorLow=Math.min(...previous.map(x=>+x[3]));
+ const mid=(priorHigh+priorLow)/2;
+ const size=priorHigh-priorLow;
+
+ const a=atr(data,i);
+ if(!a||!size)return null;
+
+ const sweepHigh=high>priorHigh&&close<priorHigh;
+ const sweepLow=low<priorLow&&close>priorLow;
+
+ const shortSignal=sweepHigh&&close<open;
+ const longSignal=sweepLow&&close>open;
+
+ if(!shortSignal&&!longSignal)return null;
+
+ const isShort=shortSignal;
+ const swing=data.slice(Math.max(0,i-9),i+1);
+ const swingHigh=Math.max(...swing.map(x=>+x[2]));
+ const swingLow=Math.min(...swing.map(x=>+x[3]));
+
+ const entry=close;
+ const sl=isShort?swingHigh+a*.15:swingLow-a*.15;
+ const tp1=mid;
+ const tp2=isShort?priorLow:priorHigh;
+ const tp3=isShort?priorLow-size*.272:priorHigh+size*.272;
+
+ const strength=isShort
+ ?(high-priorHigh+priorHigh-close)/a
+ :(priorLow-low+close-priorLow)/a;
+
+ return {
+  symbol,side:isShort?"SHORT":"LONG",
+  entry,sl,tp1,tp2,tp3,strength,
+  time:c[0],interval:period
+ };
+}
+
+async function getSymbols(){
+ const r=await fetch(API+"/fapi/v1/exchangeInfo");
+ if(!r.ok)throw Error("Binance exchangeInfo gagal");
+ const j=await r.json();
+ return j.symbols.filter(x=>
+  x.status==="TRADING"&&
+  x.contractType==="PERPETUAL"&&
+  x.quoteAsset==="USDT"
+ ).map(x=>x.symbol);
+}
+
+async function getCandles(symbol,tf){
+ const url=API+"/fapi/v1/klines?symbol="+symbol+
+ "&interval="+tf+"&limit=100";
+ const r=await fetch(url);
+ if(!r.ok)throw Error("Kline gagal");
+ return await r.json();
+}
+
+async function startScan(){
  if(busy)return;
- busy=true;
- const status=document.getElementById('status');
- status.textContent='Mengambil data Binance Futures...';
- document.getElementById('results').innerHTML='';
+ busy=true;stopped=false;
+ $("results").innerHTML="Memulai pemindaian...";
+ $("total").textContent="0";
+ $("ns").textContent="0";
+ $("nl").textContent="0";
+ $("bar").style.width="0%";
+ let found=[],done=0,errors=0;
+
  try{
-  const [info,tickers]=await Promise.all([
-   get('/fapi/v1/exchangeInfo'),
-   get('/fapi/v1/ticker/24hr')
-  ]);
+  const tf=$("tf").value;
+  const len=Math.max(3,Math.min(100,+$("len").value||20));
+  const side=$("side").value;
+  const query=$("search").value.trim().toUpperCase();
 
-  const allowed=new Set(info.symbols
-   .filter(s=>s.status==='TRADING'&&
-    s.contractType==='PERPETUAL'&&
-    s.quoteAsset==='USDT')
-   .map(s=>s.symbol));
+  let symbols=await getSymbols();
+  if(query)symbols=symbols.filter(s=>s.includes(query));
 
-  const min=Number(document.getElementById('vol').value)*1e6;
-  const coins=tickers
-   .filter(t=>allowed.has(t.symbol)&&+t.quoteVolume>=min)
-   .sort((a,b)=>+b.quoteVolume-+a.quoteVolume)
-   .slice(0,60);
+  const total=symbols.length;
+  $("status").textContent="Memindai "+total+" pasangan...";
 
-  let results=[],done=0;
-  for(let i=0;i<coins.length;i+=10){
-   const batch=coins.slice(i,i+10);
-   const found=await Promise.all(batch.map(async t=>{
+  let cursor=0;
+  async function worker(){
+   while(cursor<total&&!stopped){
+    const symbol=symbols[cursor++];
     try{
-     const [h1,h4]=await Promise.all([
-      get('/fapi/v1/klines?symbol='+t.symbol+'&interval=1h&limit=60'),
-      get('/fapi/v1/klines?symbol='+t.symbol+'&interval=4h&limit=40')
-     ]);
-     const s=detect(h1);
-     if(!s)return null;
-     const closes=h4.slice(0,-1).map(x=>+x[4]);
-     const trend=ema(closes.slice(-21),9)>ema(closes.slice(-21),21)
-       ?'UP':'DOWN';
-
-     if(s.short&&trend==='DOWN')
-      return {symbol:t.symbol,side:'SHORT',price:s.close,vol:+t.quoteVolume};
-     if(s.long&&trend==='UP')
-      return {symbol:t.symbol,side:'LONG',price:s.close,vol:+t.quoteVolume};
-    }catch(e){}
-    return null;
-   }));
-   results.push(...found.filter(Boolean));
-   done+=batch.length;
-   status.textContent='Memeriksa '+done+'/'+coins.length+' koin...';
-   showResults(results);
+     const data=await getCandles(symbol,tf);
+     const result=analyze(data,symbol,tf,len);
+     if(result&&(side==="ALL"||result.side===side))
+      found.push(result);
+    }catch(e){errors++}
+    done++;
+    $("total").textContent=done;
+    $("bar").style.width=(done/total*100)+"%";
+    $("status").textContent=
+     "Memindai "+done+"/"+total+" • gagal "+errors;
+    $("ns").textContent=found.filter(x=>x.side==="SHORT").length;
+    $("nl").textContent=found.filter(x=>x.side==="LONG").length;
+   }
   }
-  window.lastResults=results;
-  showResults(results);
-  status.textContent='Selesai. '+done+' koin diperiksa.';
+
+  await Promise.all(Array.from({length:8},()=>worker()));
+  found.sort((a,b)=>b.strength-a.strength);
+  render(found);
+  $("status").textContent=stopped?
+   "Scan dihentikan • "+done+" diperiksa":
+   "Selesai • "+done+" diperiksa • gagal "+errors;
  }catch(e){
-  status.textContent='Gagal mengambil data. Coba lagi: '+e.message;
+  $("status").textContent="ERROR: "+e.message;
+  $("results").textContent="Periksa koneksi internet dan coba lagi.";
  }
  busy=false;
 }
 
-function showResults(data){
- const filtered=data.filter(x=>mode==='ALL'||x.side===mode);
- document.getElementById('ns').textContent=data.filter(x=>x.side==='SHORT').length;
- document.getElementById('nl').textContent=data.filter(x=>x.side==='LONG').length;
- document.getElementById('nt').textContent=data.length;
- const box=document.getElementById('results');
- if(!filtered.length){
-  box.innerHTML='<p class="sub">Belum ada kandidat yang memenuhi syarat.</p>';
+function render(items){
+ if(!items.length){
+  $("results").innerHTML="Belum ditemukan sinyal Queen pada candle terakhir yang sudah tutup.";
   return;
  }
- box.innerHTML=filtered.map(x=>`
- <div class="item ${x.side==='SHORT'?'short':'long'}">
- <b class="${x.side==='SHORT'?'red':'green'}">
- ${x.side==='SHORT'?'🔴 SHORT':'🟢 LONG'} — ${x.symbol}
- </b><p>Harga: ${x.price}</p>
- <small>Volume 24H: ${(x.vol/1e6).toFixed(1)} juta USDT</small>
- <p><a target="_blank" href="https://www.binance.com/en/futures/${x.symbol}">Buka chart Binance ↗</a></p>
- </div>`).join('');
+ $("results").innerHTML=items.map(x=>{
+  const s=x.side==="SHORT";
+  const cls=s?"short":"long";
+  const color=s?"red":"green";
+  const url="https://www.binance.com/en/futures/"+x.symbol;
+  return `<div class="item ${cls}">
+   <b class="${color}">${s?"🔴 SHORT":"🟢 LONG"} • ${x.symbol}</b>
+   <small> • ${x.interval.toUpperCase()}</small>
+   <table>
+   <tr><td>ENTRY</td><td>${fmt(x.entry)}</td></tr>
+   <tr><td>STOP LOSS</td><td class="red">${fmt(x.sl)}</td></tr>
+   <tr><td>TP1 MID</td><td>${fmt(x.tp1)}</td></tr>
+   <tr><td>TP2 STRUCTURE</td><td>${fmt(x.tp2)}</td></tr>
+   <tr><td>TP3 EXTENSION</td><td>${fmt(x.tp3)}</td></tr>
+   </table>
+   <small>Kekuatan sweep: ${x.strength.toFixed(2)} ATR</small><br>
+   <a href="${url}" target="_blank">BUKA CHART BINANCE ↗</a>
+  </div>`;
+ }).join("");
 }
+
+function stopScan(){stopped=true}
 </script>
 </body>
 </html>
