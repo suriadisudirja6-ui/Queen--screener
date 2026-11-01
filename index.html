@@ -96,52 +96,117 @@ function atr(data,end,period=14){
   a=(a*(period-1)+trs[i])/period;
  return a;
 }
-
 function analyze(data,symbol,period,len){
- const i=data.length-2;
- if(i<len+15)return null;
+  const i=data.length-2;
+  if(i<len+2) return null;
 
- const c=data[i];
- const open=+c[1],high=+c[2],low=+c[3],close=+c[4];
+  const c=data[i];
+  const open=+c[1];
+  const high=+c[2];
+  const low=+c[3];
+  const close=+c[4];
 
- const previous=data.slice(i-len,i);
- const priorHigh=Math.max(...previous.map(x=>+x[2]));
- const priorLow=Math.min(...previous.map(x=>+x[3]));
- const mid=(priorHigh+priorLow)/2;
- const size=priorHigh-priorLow;
+  const a=atr(data,i,14);
+  if(!a || a<=0) return null;
 
- const a=atr(data,i);
- if(!a||!size)return null;
+  const tolerance=a*0.30;
+  const maxDistance=a*1.20;
+  const firstBreak=Math.max(len,i-6);
 
- const sweepHigh=high>priorHigh&&close<priorHigh;
- const sweepLow=low<priorLow&&close>priorLow;
+  for(let b=i-1;b>=firstBreak;b--){
+    const previous=data.slice(b-len,b);
+    if(previous.length<len) continue;
 
- const shortSignal=sweepHigh&&close<open;
- const longSignal=sweepLow&&close>open;
+    const keyHigh=Math.max(...previous.map(x=>+x[2]));
+    const keyLow=Math.min(...previous.map(x=>+x[3]));
 
- if(!shortSignal&&!longSignal)return null;
+    const bo=+data[b][1];
+    const bc=+data[b][4];
 
- const isShort=shortSignal;
- const swing=data.slice(Math.max(0,i-9),i+1);
- const swingHigh=Math.max(...swing.map(x=>+x[2]));
- const swingLow=Math.min(...swing.map(x=>+x[3]));
+    // LONG: breakout resistance
+    const longBreak=bc>keyHigh && bc>bo;
 
- const entry=close;
- const sl=isShort?swingHigh+a*.15:swingLow-a*.15;
- const tp1=mid;
- const tp2=isShort?priorLow:priorHigh;
- const tp3=isShort?priorLow-size*.272:priorHigh+size*.272;
+    if(longBreak){
+      let valid=true;
 
- const strength=isShort
- ?(high-priorHigh+priorHigh-close)/a
- :(priorLow-low+close-priorLow)/a;
+      for(let j=b+1;j<i;j++){
+        if(+data[j][4]<=keyHigh) valid=false;
+      }
 
- return {
-  symbol,side:isShort?"SHORT":"LONG",
-  entry,sl,tp1,tp2,tp3,strength,
-  time:c[0],interval:period
- };
+      const retest=
+        low<=keyHigh+tolerance &&
+        low>=keyHigh-tolerance &&
+        close>keyHigh &&
+        close>open &&
+        close-keyHigh<=maxDistance;
+
+      if(valid && retest){
+        const entry=close;
+        const sl=low-a*0.15;
+        const risk=entry-sl;
+        if(risk<=0) continue;
+
+        const range=Math.max(high-low,0.00000001);
+        const wick=Math.min(open,close)-low;
+        const strength=Math.min(100,
+          Math.round((wick/range)*70+
+          (Math.abs(close-open)/range)*30)
+        );
+
+        return {
+          symbol,side:"LONG",entry,sl,
+          tp1:entry+risk,
+          tp2:entry+risk*2,
+          tp3:entry+risk*3,
+          strength,time:c[0],interval:period
+        };
+      }
+    }
+
+    // SHORT: breakdown support
+    const shortBreak=bc<keyLow && bc<bo;
+
+    if(shortBreak){
+      let valid=true;
+
+      for(let j=b+1;j<i;j++){
+        if(+data[j][4]>=keyLow) valid=false;
+      }
+
+      const retest=
+        high>=keyLow-tolerance &&
+        high<=keyLow+tolerance &&
+        close<keyLow &&
+        close<open &&
+        keyLow-close<=maxDistance;
+
+      if(valid && retest){
+        const entry=close;
+        const sl=high+a*0.15;
+        const risk=sl-entry;
+        if(risk<=0) continue;
+
+        const range=Math.max(high-low,0.00000001);
+        const wick=high-Math.max(open,close);
+        const strength=Math.min(100,
+          Math.round((wick/range)*70+
+          (Math.abs(close-open)/range)*30)
+        );
+
+        return {
+          symbol,side:"SHORT",entry,sl,
+          tp1:entry-risk,
+          tp2:entry-risk*2,
+          tp3:entry-risk*3,
+          strength,time:c[0],interval:period
+        };
+      }
+    }
+  }
+
+  return null;
 }
+
 
 async function getSymbols(){
  const r=await fetch(API+"/fapi/v1/exchangeInfo");
