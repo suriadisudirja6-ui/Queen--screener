@@ -99,16 +99,27 @@ async function scan(){
      // Binance mengirim candle berjalan di elemen terakhir; buang agar hanya candle close yang dinilai.
      if(raw.length<55)continue;
      const closed=raw.slice(0,-1);
-     const closes=closed.map(k=>Number(k[4]));
-     const e9=ema(closes,9),e21=ema(closes,21),e50=ema(closes,50);
-     const pairs=[crossEvents(e9,e21),crossEvents(e9,e50),crossEvents(e21,e50)];
-     const latest=closes.length-1;
-     const indices=pairs.map(x=>x.eventIndex);
-     // Semua pasangan harus punya cross terakhir searah; hasil keluar tepat saat pasangan terakhir menyilang.
-     if(pairs.every(x=>x.eventIndex>=0&&x.direction==='up')&&Math.max(...indices)===latest)
-      found.push({symbol,side:'LONG',price:closes[latest],time:closed[latest][6]});
-     if(pairs.every(x=>x.eventIndex>=0&&x.direction==='down')&&Math.max(...indices)===latest)
-      found.push({symbol,side:'SHORT',price:closes[latest],time:closed[latest][6]});
+     const closes=closed.map(k=>Number(k[4]));JavaScript
+const e9=ema(closes,9),
+      e21=ema(closes,21),
+      e50=ema(closes,50);
+
+const latest=closes.length-1;
+const prev=latest-1;
+
+const bullNow=e9[latest]>e21[latest]&&e21[latest]>e50[latest];
+const bullPrev=e9[prev]>e21[prev]&&e21[prev]>e50[prev];
+
+const bearNow=e9[latest]<e21[latest]&&e21[latest]<e50[latest];
+const bearPrev=e9[prev]<e21[prev]&&e21[prev]<e50[prev];
+
+if(bullNow&&!bullPrev){
+  found.push({symbol,side:'LONG',price:closes[latest],time:closed[latest][6]});
+}
+
+if(bearNow&&!bearPrev){
+  found.push({symbol,side:'SHORT',price:closes[latest],time:closed[latest][6]});
+}
     }catch(e){/* satu pair gagal tidak menghentikan seluruh scan */}
     done++;if(done%5===0||done===symbols.length){$('bar').style.width=(done/symbols.length*100).toFixed(1)+'%';$('status').textContent=`Memindai ${done}/${symbols.length} pair…`;}
    }
