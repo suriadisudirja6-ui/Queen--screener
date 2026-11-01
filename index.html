@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Queen Triple EMA Cross</title>
+<title>Queen EMA 21/50 Realtime Scanner</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#172033;background:#f4f6fa}
 *{box-sizing:border-box}body{margin:0;padding:16px;max-width:900px;margin-inline:auto}
@@ -26,16 +26,14 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 </head>
 <body>
 <header>
- <div><h1>QUEEN TRIPLE EMA CROSS</h1><div class="sub">Binance USDⓈ-M Futures · EMA 9 / 21 / 50</div></div>
- <span class="tag">EARLY CROSS</span>
+ <div><h1>QUEEN EMA 21/50 REALTIME</h1><div class="sub">Binance USDⓈ-M Futures · EMA 21 / EMA 50 · 1H</div></div>
+ <span class="tag">LIVE CROSS</span>
 </header>
 <section class="panel">
  <div class="controls">
-  <label>Timeframe
-   <select id="tf"><option value="1h" selected>1 jam</option><option value="4h">4 jam</option><option value="15m">15 menit</option></select>
-  </label>
+  <label>Timeframe <strong>1 jam (1H)</strong></label>
   <label>Refresh
-   <select id="refresh"><option value="30">30 detik</option><option value="60" selected>60 detik</option><option value="120">2 menit</option></select>
+   <select id="refresh"><option value="15">15 detik</option><option value="30" selected>30 detik</option><option value="60">60 detik</option></select>
   </label>
   <button class="primary" id="scan">Scan sekarang</button>
   <button id="auto">Auto: ON</button>
@@ -44,20 +42,20 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
  <div class="progress"><div class="bar" id="bar"></div></div>
 </section>
 <section class="panel stats">
- <div class="stat long"><div>GOLDEN CROSS</div><strong id="longCount">0</strong><small>Triple cross LONG baru lengkap</small></div>
- <div class="stat short"><div>DEATH CROSS</div><strong id="shortCount">0</strong><small>Triple cross SHORT baru lengkap</small></div>
+ <div class="stat long"><div>EMA 21 CROSS UP 50</div><strong id="longCount">0</strong><small>LONG sedang berlangsung</small></div>
+ <div class="stat short"><div>EMA 21 CROSS DOWN 50</div><strong id="shortCount">0</strong><small>SHORT sedang berlangsung</small></div>
 </section>
 <section class="panel">
  <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
   <strong>Hasil scan</strong><span class="muted" id="updated">Belum ada hasil</span>
  </div>
  <div style="overflow-x:auto">
- <table><thead><tr><th>Pair</th><th>Arah</th><th>Harga</th><th>Waktu cross terakhir</th></tr></thead><tbody id="results"><tr><td colspan="4" class="muted">Belum ada sinyal baru.</td></tr></tbody></table>
+ <table><thead><tr><th>Pair</th><th>Arah</th><th>Harga</th><th>Candle 1H berjalan</th></tr></thead><tbody id="results"><tr><td colspan="4" class="muted">Belum ada sinyal baru.</td></tr></tbody></table>
  </div>
 </section>
 <section class="panel note">
- <strong>Logika sinyal:</strong> tiga pasangan EMA (9/21, 9/50, 21/50) harus masing-masing sudah cross ke arah yang sama. Sinyal hanya dikeluarkan pada candle yang menyelesaikan pasangan cross terakhir—tidak menunggu 3 atau 5 candle tambahan. Pemeriksaan memakai candle yang sudah close agar tidak memberi sinyal palsu dari cross sementara di tengah candle.
- <br><br><strong>Catatan:</strong> scanner memakai endpoint publik Binance Futures. Kecepatan bergantung koneksi dan batas API Binance. Jika browser memblokir akses API/CORS atau terlalu banyak permintaan, coba scan lagi beberapa saat kemudian.
+ <strong>Logika sinyal:</strong> scanner hanya memakai EMA 21 dan EMA 50 pada timeframe 1H. Ia menghitung ulang EMA memakai harga candle 1H yang masih berjalan. LONG muncul saat EMA 21 bergerak menembus ke atas EMA 50; SHORT muncul saat EMA 21 bergerak menembus ke bawah EMA 50. Sinyal dapat muncul atau hilang selama candle masih berjalan karena harga berubah.
+ <br><br><strong>Catatan:</strong> ini pemantau cross intrabar, bukan sinyal candle close. Periksa chart sendiri sebelum entry. Scanner memakai endpoint publik Binance USDⓈ-M Futures; hasil dan kecepatan bergantung koneksi serta batas API Binance.
 </section>
 <div id="error"></div>
 <script>
@@ -70,14 +68,6 @@ function ema(values,period){
  for(let i=1;i<values.length;i++){prev=values[i]*k+prev*(1-k);out.push(prev)}
  return out;
 }
-function crossEvents(a,b){
- let eventIndex=-1,direction=null;
- for(let i=1;i<a.length;i++){
-  if(a[i-1]<=b[i-1] && a[i]>b[i]){eventIndex=i;direction='up';}
-  else if(a[i-1]>=b[i-1] && a[i]<b[i]){eventIndex=i;direction='down';}
- }
- return {eventIndex,direction};
-}
 async function getJson(url){
  const r=await fetch(url);if(!r.ok)throw new Error('HTTP '+r.status+' dari Binance');
  return r.json();
@@ -89,55 +79,43 @@ async function scan(){
   const info=await getJson(API+'/fapi/v1/exchangeInfo');
   const symbols=info.symbols.filter(s=>s.status==='TRADING'&&s.contractType==='PERPETUAL'&&s.quoteAsset==='USDT').map(s=>s.symbol);
   let done=0,found=[],idx=0;
-  $('status').textContent=`Memindai ${symbols.length} pair…`;
+  $('status').textContent=`Memantau ${symbols.length} pair Futures pada candle 1H berjalan…`;
   async function worker(){
    while(true){
     const n=idx++;if(n>=symbols.length)return;
     const symbol=symbols[n];
     try{
-     const raw=await getJson(`${API}/fapi/v1/klines?symbol=${symbol}&interval=${$('tf').value}&limit=120`);
-     // Binance mengirim candle berjalan di elemen terakhir; buang agar hanya candle close yang dinilai.
+     // Candle terakhir belum close: close-nya adalah harga berjalan saat ini.
+     const raw=await getJson(`${API}/fapi/v1/klines?symbol=${symbol}&interval=1h&limit=120`);
      if(raw.length<55)continue;
-     const closed=raw.slice(0,-1);
-     const closes=closed.map(k=>Number(k[4]));JavaScript
-const e9=ema(closes,9),
-      e21=ema(closes,21),
-      e50=ema(closes,50);
-
-const latest=closes.length-1;
-const prev=latest-1;
-
-const bullNow=e9[latest]>e21[latest]&&e21[latest]>e50[latest];
-const bullPrev=e9[prev]>e21[prev]&&e21[prev]>e50[prev];
-
-const bearNow=e9[latest]<e21[latest]&&e21[latest]<e50[latest];
-const bearPrev=e9[prev]<e21[prev]&&e21[prev]<e50[prev];
-
-if(bullNow&&!bullPrev){
-  found.push({symbol,side:'LONG',price:closes[latest],time:closed[latest][6]});
-}
-
-if(bearNow&&!bearPrev){
-  found.push({symbol,side:'SHORT',price:closes[latest],time:closed[latest][6]});
-}
+     const closes=raw.map(k=>Number(k[4]));
+     const e21=ema(closes,21),e50=ema(closes,50);
+     const prev=e21.length-2,cur=e21.length-1;
+     const wasBelowOrEqual=e21[prev]<=e50[prev];
+     const wasAboveOrEqual=e21[prev]>=e50[prev];
+     const nowAbove=e21[cur]>e50[cur];
+     const nowBelow=e21[cur]<e50[cur];
+     let side=null;
+     if(wasBelowOrEqual&&nowAbove)side='LONG';
+     else if(wasAboveOrEqual&&nowBelow)side='SHORT';
+     if(side)found.push({symbol,side,price:closes[cur],time:Number(raw[cur][0]),gap:((e21[cur]-e50[cur])/e50[cur])*100});
     }catch(e){/* satu pair gagal tidak menghentikan seluruh scan */}
-    done++;if(done%5===0||done===symbols.length){$('bar').style.width=(done/symbols.length*100).toFixed(1)+'%';$('status').textContent=`Memindai ${done}/${symbols.length} pair…`;}
+    done++;if(done%5===0||done===symbols.length){$('bar').style.width=(done/symbols.length*100).toFixed(1)+'%';$('status').textContent=`Memantau ${done}/${symbols.length} pair…`;}
    }
   }
   await Promise.all(Array.from({length:concurrency},worker));
-  found.sort((a,b)=>b.time-a.time);
+  found.sort((a,b)=>Math.abs(a.gap)-Math.abs(b.gap));
   $('longCount').textContent=found.filter(x=>x.side==='LONG').length;
   $('shortCount').textContent=found.filter(x=>x.side==='SHORT').length;
-  $('results').innerHTML=found.length?found.map(x=>`<tr><td><strong>${x.symbol}</strong></td><td><span class="tag ${x.side.toLowerCase()}">${x.side}</span></td><td>${x.price}</td><td>${new Date(x.time).toLocaleString('id-ID')}</td></tr>`).join(''):'<tr><td colspan="4" class="muted">Belum ada triple cross yang baru lengkap pada candle terakhir.</td></tr>';
-  $('updated').textContent='Diperbarui '+new Date().toLocaleTimeString('id-ID');
-  $('status').textContent=`Selesai. ${symbols.length} pair diperiksa; ${found.length} sinyal baru.`;
+  $('results').innerHTML=found.length?found.map(x=>`<tr><td><strong>${x.symbol}</strong></td><td><span class="tag ${x.side.toLowerCase()}">${x.side} · SEDANG CROSS</span></td><td>${x.price}</td><td>${new Date(x.time).toLocaleString('id-ID',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'})}</td></tr>`).join(''):'<tr><td colspan="4" class="muted">Belum ada EMA 21/50 yang sedang cross pada candle 1H berjalan.</td></tr>';
+  $('updated').textContent='Pemeriksaan '+new Date().toLocaleTimeString('id-ID');
+  $('status').textContent=`Selesai. ${symbols.length} pair diperiksa; ${found.length} coin sedang cross.`;
  }catch(e){$('error').textContent='Gagal scan: '+e.message;$('status').textContent='Scan gagal.';}
  finally{running=false;$('scan').disabled=false;if(auto)schedule();}
 }
 function schedule(){clearTimeout(timer);timer=setTimeout(scan,Number($('refresh').value)*1000);}
 $('scan').addEventListener('click',()=>{clearTimeout(timer);scan()});
 $('auto').addEventListener('click',()=>{auto=!auto;$('auto').textContent='Auto: '+(auto?'ON':'OFF');clearTimeout(timer);if(auto)schedule()});
-$('tf').addEventListener('change',()=>{clearTimeout(timer);scan()});
 $('refresh').addEventListener('change',()=>{if(auto)schedule()});
 scan();
 </script>
