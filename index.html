@@ -35,13 +35,13 @@ footer{padding:22px 5px;color:var(--muted);font-size:11px;line-height:1.5}
 <header><h1>🤖 ROBOT FUTURES SCANNER</h1><div class="sub">Price action • Market structure • Liquidity • Binance USDT Perpetual</div></header>
 <main class="wrap">
  <div class="stats">
-  <div class="stat"><span>Pair lolos volume 24 jam</span><b id="eligible">—</b></div>
+  <div class="stat"><span>Pair USDT Perpetual diperiksa</span><b id="eligible">—</b></div>
   <div class="stat"><span>LONG ENTRY</span><b id="longCount" style="color:var(--green)">0</b></div>
   <div class="stat"><span>SHORT ENTRY</span><b id="shortCount" style="color:var(--red)">0</b></div>
  </div>
  <div class="panel">
   <div><b>Pengaturan robot</b></div>
-  <div class="muted" style="margin-top:7px">Volume minimum: <b>50.000.000 USDT / 24 jam</b> • Struktur: <b>4H</b> • Konfirmasi: <b>1H</b></div>
+  <div class="muted" style="margin-top:7px">Tanpa filter volume • Struktur: <b>4H</b> • Konfirmasi: <b>1H</b></div>
   <div class="muted" style="margin-top:5px">EMA tidak digunakan. Hanya sinyal yang sudah memenuhi seluruh rangkaian konfirmasi yang ditampilkan.</div>
   <div class="controls"><button id="scanBtn" onclick="startScan()">SCAN SEKARANG</button><button class="secondary" id="autoBtn" onclick="toggleAuto()">AUTO SCAN: OFF</button></div>
  </div>
@@ -52,7 +52,8 @@ footer{padding:22px 5px;color:var(--muted);font-size:11px;line-height:1.5}
 </main>
 <script>
 const API='https://fapi.binance.com';
-const MIN_VOL=50000000, MAX_PAIRS=90;
+// Semua kontrak USDT Perpetual aktif diperiksa; tidak ada filter volume atau batas jumlah pair.
+const MAX_CONCURRENCY=6;
 let busy=false, autoTimer=null;
 const $=id=>document.getElementById(id);
 const fmt=n=>Number(n).toLocaleString('en-US',{maximumFractionDigits:8});
@@ -128,7 +129,7 @@ function analyze1h(a,dir){
   return found;
  }
 }
-function buildSignal(symbol,dir,a4,a1,quoteVol){
+function buildSignal(symbol,dir,a4,a1){
  if(!structure4h(a4,dir))return null;
  const proof=analyze1h(a1,dir); if(!proof)return null;
  const last=a1[a1.length-1], prev=a1[a1.length-2];
@@ -145,7 +146,7 @@ function buildSignal(symbol,dir,a4,a1,quoteVol){
   tp1=entry+risk*1.5;tp2=entry+risk*2.5;
  }
  if(![entry,sl,tp1,tp2].every(Number.isFinite))return null;
- return {symbol,dir,entry,sl,tp1,tp2,quoteVol,reason:dir==='SHORT'?'Struktur 4H lower high/lower low • sweep high • bearish BOS • retest & rejection 1H':'Struktur 4H higher high/higher low • sweep low • bullish BOS • retest & rejection 1H'};
+ return {symbol,dir,entry,sl,tp1,tp2,reason:dir==='SHORT'?'Struktur 4H lower high/lower low • sweep high • bearish BOS • retest & rejection 1H':'Struktur 4H higher high/higher low • sweep low • bullish BOS • retest & rejection 1H'};
 }
 async function mapLimit(items,limit,fn){
  let idx=0,results=[];
@@ -154,34 +155,33 @@ async function mapLimit(items,limit,fn){
 }
 async function scan(){
  if(busy)return;busy=true;$('scanBtn').disabled=true;
- $('status').textContent='Mengambil daftar kontrak dan volume 24 jam Binance Futures...';
+ $('status').textContent='Mengambil seluruh kontrak USDT Perpetual aktif Binance Futures...';
  try{
   const [info,tickers]=await Promise.all([getJSON(API+'/fapi/v1/exchangeInfo'),getJSON(API+'/fapi/v1/ticker/24hr')]);
   const tradable=new Set(info.symbols.filter(s=>s.contractType==='PERPETUAL'&&s.quoteAsset==='USDT'&&s.status==='TRADING').map(s=>s.symbol));
-  const candidates=tickers.filter(t=>tradable.has(t.symbol)&&+t.quoteVolume>=MIN_VOL)
-    .sort((a,b)=>+b.quoteVolume-+a.quoteVolume).slice(0,MAX_PAIRS);
+  const tickerSymbols=new Set(tickers.map(t=>t.symbol));
+  const candidates=[...tradable].filter(symbol=>tickerSymbols.has(symbol));
   $('eligible').textContent=candidates.length;
-  $('status').textContent=`Lolos volume: ${candidates.length} pair. Robot sedang membaca candle 4H dan 1H...`;
+  $('status').textContent=`Memeriksa ${candidates.length} pair USDT Perpetual tanpa filter volume. Membaca candle 4H dan 1H...`;
   let done=0;
-  const results=await mapLimit(candidates,8,async t=>{
+  const results=await mapLimit(candidates,MAX_CONCURRENCY,async symbol=>{
    const [raw4,raw1]=await Promise.all([
-    getJSON(`${API}/fapi/v1/klines?symbol=${t.symbol}&interval=4h&limit=100`),
-    getJSON(`${API}/fapi/v1/klines?symbol=${t.symbol}&interval=1h&limit=100`)
+    getJSON(`${API}/fapi/v1/klines?symbol=${symbol}&interval=4h&limit=100`),
+    getJSON(`${API}/fapi/v1/klines?symbol=${symbol}&interval=1h&limit=100`)
    ]);
    // Kline terakhir masih berjalan; buang agar sinyal hanya dari candle tertutup.
    const a4=raw4.slice(0,-1).map(candle),a1=raw1.slice(0,-1).map(candle);
-   const v=+t.quoteVolume;
-   const short=buildSignal(t.symbol,'SHORT',a4,a1,v);
-   const long=buildSignal(t.symbol,'LONG',a4,a1,v);
+   const short=buildSignal(symbol,'SHORT',a4,a1);
+   const long=buildSignal(symbol,'LONG',a4,a1);
    done++;if(done%10===0)$('status').textContent=`Menganalisis ${done}/${candidates.length} pair...`;
    return [long,short].filter(Boolean);
   });
   const flat=results.flat().filter(Boolean);
-  const longs=flat.filter(x=>x.dir==='LONG').sort((a,b)=>b.quoteVol-a.quoteVol);
-  const shorts=flat.filter(x=>x.dir==='SHORT').sort((a,b)=>b.quoteVol-a.quoteVol);
+  const longs=flat.filter(x=>x.dir==='LONG');
+  const shorts=flat.filter(x=>x.dir==='SHORT');
   render('longResults',longs);render('shortResults',shorts);
   $('longCount').textContent=longs.length;$('shortCount').textContent=shorts.length;
-  $('status').textContent=`Selesai • ${candidates.length} pair diperiksa • ${flat.length} sinyal entry terkonfirmasi • Pembaruan ${new Date().toLocaleTimeString('id-ID')}`;
+  $('status').textContent=`Selesai • ${candidates.length} pair USDT Perpetual diperiksa tanpa filter volume • ${flat.length} sinyal entry terkonfirmasi • Pembaruan ${new Date().toLocaleTimeString('id-ID')}`;
  }catch(e){$('status').textContent='Gagal mengambil data: '+e.message+'. Coba lagi beberapa saat.';}
  finally{busy=false;$('scanBtn').disabled=false;}
 }
@@ -190,7 +190,6 @@ function render(id,list){
  if(!list.length){root.innerHTML='<div class="empty">Belum ada sinyal entry terkonfirmasi. Robot tidak memaksakan sinyal.</div>';return;}
  root.innerHTML=list.map(x=>`<article class="signal ${x.dir==='SHORT'?'short':''}">
  <h3>${x.symbol}<span class="tag">${x.dir} ENTRY</span></h3>
- <div class="muted">Volume 24 jam: ${fmt(x.quoteVol/1e6)}M USDT</div>
  <div class="levels">
   <div class="level"><small>ENTRY</small><b>${fmt(x.entry)}</b></div>
   <div class="level"><small>STOP LOSS</small><b>${fmt(x.sl)}</b></div>
