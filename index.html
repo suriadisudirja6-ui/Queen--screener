@@ -1,123 +1,76 @@
 <!doctype html>
 <html lang="id">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Queen EMA 21/50 Realtime Scanner</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Order Block Market Scanner</title>
 <style>
-:root{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#172033;background:#f4f6fa}
-*{box-sizing:border-box}body{margin:0;padding:16px;max-width:900px;margin-inline:auto}
-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-h1{font-size:22px;margin:4px 0}.sub{color:#667085;font-size:13px}
-.panel{background:white;border:1px solid #e3e7ef;border-radius:16px;padding:14px;margin:14px 0;box-shadow:0 2px 8px #17203308}
-.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-button,select{border:1px solid #d0d5dd;border-radius:10px;padding:10px 12px;background:white;font:inherit}
-button.primary{background:#172033;color:white;border-color:#172033}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.stat{padding:14px;border-radius:12px}.long{background:#e9f8f0;color:#087443}.short{background:#fff0f0;color:#b42318}
-.stat strong{display:block;font-size:28px}.muted{color:#667085;font-size:12px}
-.progress{height:8px;background:#edf0f5;border-radius:99px;overflow:hidden;margin-top:9px}.bar{height:100%;width:0;background:#667085;transition:width .2s}
-table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:10px 7px;border-bottom:1px solid #edf0f4}th{font-size:12px;color:#667085}
-.tag{font-size:11px;font-weight:700;border-radius:99px;padding:4px 8px}.tag.long{background:#e9f8f0}.tag.short{background:#fff0f0}
-.note{font-size:12px;line-height:1.5;color:#667085}
-#error{color:#b42318;white-space:pre-wrap;font-size:13px}
-@media(max-width:520px){body{padding:11px}h1{font-size:19px}table{font-size:12px}th,td{padding:8px 4px}}
-</style>
-</head>
+:root{color-scheme:dark;--bg:#08111f;--panel:#111d30;--line:#263750;--muted:#9aabc2;--text:#eef4ff;--green:#25c58b;--red:#ef596b;--blue:#6ba8ff;--amber:#f3bd55}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,Segoe UI,sans-serif}header{padding:22px 16px 14px;text-align:center;background:linear-gradient(120deg,#14294a,#10182a)}h1{font-size:22px;margin:0 0 5px}header p{margin:0;color:var(--muted);font-size:12px}main{max-width:1100px;margin:auto;padding:14px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px;margin-bottom:13px}.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.field label{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}input,select,button{width:100%;padding:11px;border:1px solid var(--line);border-radius:9px;background:#0b1628;color:var(--text);font:inherit}button{background:#315fe8;border:0;font-weight:750;cursor:pointer;margin-top:12px}button:disabled{opacity:.5}.secondary{background:#263750}.status{color:var(--muted);font-size:12px;line-height:1.5;margin-top:10px}.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.stat{padding:12px;border:1px solid var(--line);border-radius:10px}.stat b{font-size:24px;display:block;margin-top:3px}.green{color:var(--green)}.red{color:var(--red)}.blue{color:var(--blue)}.amber{color:var(--amber)}.tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}.tab{padding:9px 12px;border:1px solid var(--line);border-radius:9px;color:var(--muted);cursor:pointer}.tab.active{border-color:#7c9dff;color:white;background:#1a2b49}.tablewrap{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:760px}th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);font-size:12px;white-space:nowrap}th{color:var(--muted);font-weight:600}.pill{display:inline-block;padding:4px 7px;border-radius:6px;font-weight:750;font-size:10px}.pill.long{background:#123d32;color:#65e4b5}.pill.short{background:#4a202b;color:#ff9eaa}.pill.inside{background:#173b32;color:#6ee7b7}.pill.near{background:#49391d;color:#ffd27a}.pill.out{background:#263750;color:#b7c5d8}.empty{text-align:center;color:var(--muted);padding:25px}.note{font-size:12px;line-height:1.65;color:var(--muted)}.note strong{color:var(--text)}.progress{height:5px;background:#263750;border-radius:9px;overflow:hidden;margin-top:9px}.bar{height:100%;width:0;background:#6ba8ff;transition:width .2s}.right{float:right;color:var(--muted);font-size:11px}
+@media(min-width:720px){.controls{grid-template-columns:repeat(4,minmax(0,1fr))}.stats{grid-template-columns:repeat(4,1fr)}}
+</style></head>
 <body>
-<header>
- <div><h1>QUEEN EMA 21/50 REALTIME</h1><div class="sub">Binance USDⓈ-M Futures · EMA 21 / EMA 50 · 1H</div></div>
- <span class="tag">LIVE CROSS</span>
-</header>
+<header><h1>ORDER BLOCK MARKET SCANNER</h1><p>Binance USDⓈ-M Futures · Bullish & Bearish OB · 1H + 4H</p></header>
+<main>
 <section class="panel">
  <div class="controls">
-  <label>Timeframe <strong>1 jam (1H)</strong></label>
-  <label>Refresh
-   <select id="refresh"><option value="15">15 detik</option><option value="30" selected>30 detik</option><option value="60">60 detik</option></select>
-  </label>
-  <button class="primary" id="scan">Scan sekarang</button>
-  <button id="auto">Auto: ON</button>
+  <div class="field"><label>Jarak “Mendekati” (%)</label><input id="nearPct" type="number" min="0.05" max="5" step="0.05" value="0.30"></div>
+  <div class="field"><label>Maksimum umur OB (candle)</label><input id="age" type="number" min="10" max="200" value="80"></div>
+  <div class="field"><label>Jumlah pair maksimum (0 = semua)</label><input id="maxPairs" type="number" min="0" max="600" value="0"></div>
+  <div class="field"><label>Kecepatan scan</label><select id="workers"><option value="5">Stabil (5 koneksi)</option><option value="8" selected>Normal (8 koneksi)</option><option value="12">Cepat (12 koneksi)</option></select></div>
  </div>
- <div class="muted" id="status" style="margin-top:12px">Siap memindai…</div>
- <div class="progress"><div class="bar" id="bar"></div></div>
+ <button id="scan">MULAI SCAN</button><button id="auto" class="secondary">Auto scan: OFF</button>
+ <div class="status" id="status">Siap. Scanner akan memeriksa kontrak USDT perpetual Binance, memakai candle yang sudah close untuk membentuk OB dan harga terbaru untuk status zona.</div><div class="progress"><div class="bar" id="bar"></div></div>
 </section>
 <section class="panel stats">
- <div class="stat long"><div>EMA 21 CROSS UP 50</div><strong id="longCount">0</strong><small>LONG sedang berlangsung</small></div>
- <div class="stat short"><div>EMA 21 CROSS DOWN 50</div><strong id="shortCount">0</strong><small>SHORT sedang berlangsung</small></div>
+ <div class="stat"><span class="green">Bullish OB 1H</span><b id="b1">0</b><small>coin di dalam zona</small></div>
+ <div class="stat"><span class="red">Bearish OB 1H</span><b id="s1">0</b><small>coin di dalam zona</small></div>
+ <div class="stat"><span class="green">Bullish OB 4H</span><b id="b4">0</b><small>coin di dalam zona</small></div>
+ <div class="stat"><span class="red">Bearish OB 4H</span><b id="s4">0</b><small>coin di dalam zona</small></div>
 </section>
 <section class="panel">
- <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
-  <strong>Hasil scan</strong><span class="muted" id="updated">Belum ada hasil</span>
+ <div class="tabs" id="tabs">
+  <div class="tab active" data-view="all">Semua <span id="nall">0</span></div>
+  <div class="tab" data-view="inside">Di dalam <span id="ninside">0</span></div>
+  <div class="tab" data-view="near">Mendekati <span id="nnear">0</span></div>
+  <div class="tab" data-view="aligned">1H + 4H searah <span id="naligned">0</span></div>
+  <div class="tab" data-view="conflict">Konflik TF <span id="nconflict">0</span></div>
  </div>
- <div style="overflow-x:auto">
- <table><thead><tr><th>Pair</th><th>Arah</th><th>Harga</th><th>Candle 1H berjalan</th></tr></thead><tbody id="results"><tr><td colspan="4" class="muted">Belum ada sinyal baru.</td></tr></tbody></table>
- </div>
+ <div class="tablewrap"><table><thead><tr><th>Pair</th><th>TF</th><th>Arah OB</th><th>Status</th><th>Harga</th><th>Batas bawah</th><th>Batas atas</th><th>Umur</th><th>Struktur</th></tr></thead><tbody id="rows"><tr><td colspan="9" class="empty">Belum ada hasil scan.</td></tr></tbody></table></div>
 </section>
-<section class="panel note">
- <strong>Logika sinyal:</strong> scanner hanya memakai EMA 21 dan EMA 50 pada timeframe 1H. Ia menghitung ulang EMA memakai harga candle 1H yang masih berjalan. LONG muncul saat EMA 21 bergerak menembus ke atas EMA 50; SHORT muncul saat EMA 21 bergerak menembus ke bawah EMA 50. Sinyal dapat muncul atau hilang selama candle masih berjalan karena harga berubah.
- <br><br><strong>Catatan:</strong> ini pemantau cross intrabar, bukan sinyal candle close. Periksa chart sendiri sebelum entry. Scanner memakai endpoint publik Binance USDⓈ-M Futures; hasil dan kecepatan bergantung koneksi serta batas API Binance.
-</section>
-<div id="error"></div>
+<section class="panel note"><strong>Aturan deteksi versi 1:</strong><br>• Bullish OB = candle bearish terakhir sebelum candle bullish impulsif menutup di atas swing high terkonfirmasi (BOS).<br>• Bearish OB = candle bullish terakhir sebelum candle bearish impulsif menutup di bawah swing low terkonfirmasi (BOS).<br>• Zona OB memakai rentang high–low candle sumber. Zona dianggap invalid jika candle berikutnya menutup melewati sisi distal zona (bullish: di bawah low; bearish: di atas high).<br>• Status “Mendekati” memakai jarak default 0,30% dari tepi zona. Ubah nilainya sesuai kebutuhan.<br><br><strong>Penting:</strong> Ini definisi OB mekanis buatan scanner, bukan pembacaan kotak LuxAlgo. OB adalah area kandidat, bukan sinyal entry. Uji hasil di chart sebelum transaksi. Data memakai API publik Binance dan dapat terkena batas permintaan/koneksi.</section>
+</main>
 <script>
-const $=id=>document.getElementById(id);
-let running=false,auto=true,timer=null;
-const API='https://fapi.binance.com';
-const concurrency=8;
-function ema(values,period){
- const k=2/(period+1),out=[];let prev=values[0];out.push(prev);
- for(let i=1;i<values.length;i++){prev=values[i]*k+prev*(1-k);out.push(prev)}
- return out;
+const API='https://fapi.binance.com';const $=id=>document.getElementById(id);let running=false,autoTimer=null,allRows=[],view='all';
+const fmt=x=>Number(x).toLocaleString('en-US',{maximumFractionDigits:8});
+async function getJSON(url){const r=await fetch(url);if(!r.ok)throw Error('HTTP '+r.status);return r.json()}
+function pivots(candles){let highs=[],lows=[];for(let i=2;i<candles.length-2;i++){let h=candles[i].h,l=candles[i].l; if(h>candles[i-1].h&&h>candles[i-2].h&&h>=candles[i+1].h&&h>=candles[i+2].h)highs.push({i,p:h});if(l<candles[i-1].l&&l<candles[i-2].l&&l<=candles[i+1].l&&l<=candles[i+2].l)lows.push({i,p:l})}return {highs,lows}}
+function detectOB(candles,side,maxAge){const {highs,lows}=pivots(candles);let found=[];let start=Math.max(8,candles.length-maxAge-1);for(let i=start;i<candles.length-1;i++){
+ const c=candles[i];let broke=false,level=null;
+ if(side==='BULL'){let prev=highs.filter(x=>x.i<i).slice(-1)[0];if(prev&&c.c>prev.p&&c.c>c.o&&c.c-c.o>=Math.abs(c.o-c.c)*0.9){broke=true;level=prev.p}}
+ else{let prev=lows.filter(x=>x.i<i).slice(-1)[0];if(prev&&c.c<prev.p&&c.c<c.o&&c.o-c.c>=Math.abs(c.o-c.c)*0.9){broke=true;level=prev.p}}
+ if(!broke)continue;
+ // Find the last opposite-color candle before the BOS impulse candle.
+ let src=-1;for(let j=i-1;j>=Math.max(0,i-8);j--){if(side==='BULL'&&candles[j].c<candles[j].o){src=j;break}if(side==='BEAR'&&candles[j].c>candles[j].o){src=j;break}}
+ if(src<0)continue;let z=candles[src],invalid=false;for(let k=src+1;k<candles.length;k++){if(side==='BULL'&&candles[k].c<z.l){invalid=true;break}if(side==='BEAR'&&candles[k].c>z.h){invalid=true;break}}
+ if(!invalid)found.push({side,lo:z.l,hi:z.h,sourceTime:z.t,bosTime:c.t,age:candles.length-1-src,level})
+ }
+ return found.sort((a,b)=>b.sourceTime-a.sourceTime)[0]||null;
 }
-async function getJson(url){
- const r=await fetch(url);if(!r.ok)throw new Error('HTTP '+r.status+' dari Binance');
- return r.json();
+function statusFor(price,z,nearPct){if(price>=z.lo&&price<=z.hi)return 'DI DALAM';let d=price<z.lo?(z.lo-price)/price*100:(price-z.hi)/price*100;return d<=nearPct?'MENDEKATI':'DI LUAR'}
+function badgeStatus(s){return s==='DI DALAM'?'inside':s==='MENDEKATI'?'near':'out'}
+function render(){let arr=allRows.filter(x=>{if(view==='inside')return x.status==='DI DALAM';if(view==='near')return x.status==='MENDEKATI';if(view==='aligned')return x.aligned;if(view==='conflict')return x.conflict;return true}).sort((a,b)=>({ 'DI DALAM':0,'MENDEKATI':1,'DI LUAR':2}[a.status]-({'DI DALAM':0,'MENDEKATI':1,'DI LUAR':2}[b.status]))||a.symbol.localeCompare(b.symbol));
+ $('rows').innerHTML=arr.length?arr.map(x=>`<tr><td><b>${x.symbol}</b></td><td>${x.tf}</td><td><span class="pill ${x.side==='BULL'?'long':'short'}">${x.side==='BULL'?'BULLISH':'BEARISH'}</span></td><td><span class="pill ${badgeStatus(x.status)}">${x.status}</span></td><td>${fmt(x.price)}</td><td>${fmt(x.lo)}</td><td>${fmt(x.hi)}</td><td>${x.age} candle</td><td>${x.bosTime?new Date(x.bosTime).toLocaleString('id-ID'):''}</td></tr>`).join(''):'<tr><td colspan="9" class="empty">Tidak ada hasil pada kategori ini.</td></tr>';
+ $('nall').textContent=allRows.length;$('ninside').textContent=allRows.filter(x=>x.status==='DI DALAM').length;$('nnear').textContent=allRows.filter(x=>x.status==='MENDEKATI').length;$('naligned').textContent=[...new Set(allRows.filter(x=>x.aligned).map(x=>x.symbol))].length;$('nconflict').textContent=[...new Set(allRows.filter(x=>x.conflict).map(x=>x.symbol))].length;
+ document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.view===view));
 }
-async function scan(){
- if(running)return;running=true;$('scan').disabled=true;$('error').textContent='';
- $('status').textContent='Mengambil daftar pair Futures…';$('bar').style.width='0%';
- try{
-  const info=await getJson(API+'/fapi/v1/exchangeInfo');
-  const symbols=info.symbols.filter(s=>s.status==='TRADING'&&s.contractType==='PERPETUAL'&&s.quoteAsset==='USDT').map(s=>s.symbol);
-  let done=0,found=[],idx=0;
-  $('status').textContent=`Memantau ${symbols.length} pair Futures pada candle 1H berjalan…`;
-  async function worker(){
-   while(true){
-    const n=idx++;if(n>=symbols.length)return;
-    const symbol=symbols[n];
-    try{
-     // Candle terakhir belum close: close-nya adalah harga berjalan saat ini.
-     const raw=await getJson(`${API}/fapi/v1/klines?symbol=${symbol}&interval=1h&limit=120`);
-     if(raw.length<55)continue;
-     const closes=raw.map(k=>Number(k[4]));
-     const e21=ema(closes,21),e50=ema(closes,50);
-     const prev=e21.length-2,cur=e21.length-1;
-     const wasBelowOrEqual=e21[prev]<=e50[prev];
-     const wasAboveOrEqual=e21[prev]>=e50[prev];
-     const nowAbove=e21[cur]>e50[cur];
-     const nowBelow=e21[cur]<e50[cur];
-     let side=null;
-     if(wasBelowOrEqual&&nowAbove)side='LONG';
-     else if(wasAboveOrEqual&&nowBelow)side='SHORT';
-     if(side)found.push({symbol,side,price:closes[cur],time:Number(raw[cur][0]),gap:((e21[cur]-e50[cur])/e50[cur])*100});
-    }catch(e){/* satu pair gagal tidak menghentikan seluruh scan */}
-    done++;if(done%5===0||done===symbols.length){$('bar').style.width=(done/symbols.length*100).toFixed(1)+'%';$('status').textContent=`Memantau ${done}/${symbols.length} pair…`;}
-   }
-  }
-  await Promise.all(Array.from({length:concurrency},worker));
-  found.sort((a,b)=>Math.abs(a.gap)-Math.abs(b.gap));
-  $('longCount').textContent=found.filter(x=>x.side==='LONG').length;
-  $('shortCount').textContent=found.filter(x=>x.side==='SHORT').length;
-  $('results').innerHTML=found.length?found.map(x=>`<tr><td><strong>${x.symbol}</strong></td><td><span class="tag ${x.side.toLowerCase()}">${x.side} · SEDANG CROSS</span></td><td>${x.price}</td><td>${new Date(x.time).toLocaleString('id-ID',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'})}</td></tr>`).join(''):'<tr><td colspan="4" class="muted">Belum ada EMA 21/50 yang sedang cross pada candle 1H berjalan.</td></tr>';
-  $('updated').textContent='Pemeriksaan '+new Date().toLocaleTimeString('id-ID');
-  $('status').textContent=`Selesai. ${symbols.length} pair diperiksa; ${found.length} coin sedang cross.`;
- }catch(e){$('error').textContent='Gagal scan: '+e.message;$('status').textContent='Scan gagal.';}
- finally{running=false;$('scan').disabled=false;if(auto)schedule();}
-}
-function schedule(){clearTimeout(timer);timer=setTimeout(scan,Number($('refresh').value)*1000);}
-$('scan').addEventListener('click',()=>{clearTimeout(timer);scan()});
-$('auto').addEventListener('click',()=>{auto=!auto;$('auto').textContent='Auto: '+(auto?'ON':'OFF');clearTimeout(timer);if(auto)schedule()});
-$('refresh').addEventListener('change',()=>{if(auto)schedule()});
-scan();
-</script>
-</body>
-</html>
+$('tabs').addEventListener('click',e=>{let t=e.target.closest('.tab');if(t){view=t.dataset.view;render()}});
+async function scan(){if(running)return;running=true;$('scan').disabled=true;$('status').textContent='Mengambil daftar kontrak dan harga Binance…';$('bar').style.width='0%';allRows=[];try{
+ const [info,tickers]=await Promise.all([getJSON(API+'/fapi/v1/exchangeInfo'),getJSON(API+'/fapi/v1/ticker/price')]);const prices=new Map(tickers.map(x=>[x.symbol,Number(x.price)]));let symbols=info.symbols.filter(s=>s.status==='TRADING'&&s.contractType==='PERPETUAL'&&s.quoteAsset==='USDT').map(s=>s.symbol);let cap=Number($('maxPairs').value)||0;if(cap>0)symbols=symbols.slice(0,cap);let done=0,idx=0,found=[];const concurrency=Number($('workers').value),near=Number($('nearPct').value)||.3,age=Math.max(10,Math.min(200,Number($('age').value)||80));$('status').textContent=`Memindai ${symbols.length} pair · dua timeframe…`;
+ async function worker(){while(true){let n=idx++;if(n>=symbols.length)return;let symbol=symbols[n],price=prices.get(symbol);try{if(!price)throw 0;for(const tf of ['1h','4h']){let raw=await getJSON(`${API}/fapi/v1/klines?symbol=${symbol}&interval=${tf}&limit=160`);let closed=raw.slice(0,-1).map(k=>({t:Number(k[0]),o:+k[1],h:+k[2],l:+k[3],c:+k[4]}));if(closed.length<30)continue;for(const side of ['BULL','BEAR']){let z=detectOB(closed,side,age);if(!z)continue;let st=statusFor(price,z,near);found.push({symbol,tf:tf.toUpperCase(),side,status:st,price,lo:z.lo,hi:z.hi,age:z.age,bosTime:z.bosTime,sourceTime:z.sourceTime})}}}catch(e){}done++;if(done%5===0||done===symbols.length){$('bar').style.width=(done/symbols.length*100).toFixed(1)+'%';$('status').textContent=`Memindai ${done}/${symbols.length} pair…`}}}
+ await Promise.all(Array.from({length:concurrency},worker));
+ // Flag symbol alignment/conflict only when both TFs have an active OB whose price is inside/near its zone.
+ const by={};for(const r of found){(by[r.symbol]??=[]).push(r)}for(const [sym,rs] of Object.entries(by)){let a=rs.find(x=>x.tf==='1H'&&x.status!=='DI LUAR'),b=rs.find(x=>x.tf==='4H'&&x.status!=='DI LUAR');if(a&&b){if(a.side===b.side)rs.forEach(x=>x.aligned=true);else rs.forEach(x=>x.conflict=true)}}
+ allRows=found;for(const [id,tf,side] of [['b1','1H','BULL'],['s1','1H','BEAR'],['b4','4H','BULL'],['s4','4H','BEAR']])$(id).textContent=found.filter(x=>x.tf===tf&&x.side===side&&x.status==='DI DALAM').length;render();$('status').textContent=`Selesai: ${symbols.length} pair diperiksa pada 1H dan 4H. ${found.length} zona OB aktif ditemukan (termasuk status di luar zona). Diperbarui ${new Date().toLocaleTimeString('id-ID')}.`;
+ }catch(e){$('status').textContent='Gagal mengambil data Binance: '+(e.message||'periksa koneksi/CORS lalu coba lagi')}finally{running=false;$('scan').disabled=false}}
+$('scan').addEventListener('click',scan);$('auto').addEventListener('click',()=>{if(autoTimer){clearInterval(autoTimer);autoTimer=null;$('auto').textContent='Auto scan: OFF'}else{autoTimer=setInterval(scan,5*60*1000);$('auto').textContent='Auto scan: ON';scan()}});
+</script></body></html>
