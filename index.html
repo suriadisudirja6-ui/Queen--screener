@@ -3,210 +3,185 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Futures Entry Scanner</title>
+<meta name="theme-color" content="#0b1220">
+<title>EMA Momentum Scanner</title>
 <style>
-:root{color-scheme:dark;--bg:#0b1220;--panel:#111c2e;--line:#26364d;--muted:#9aabc2;--text:#eef4ff;--green:#20c77a;--red:#ff6474;--blue:#69a9ff;--amber:#ffc766}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-.wrap{max-width:1100px;margin:auto;padding:18px}.top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-h1{font-size:24px;margin:0 0 5px}.sub{color:var(--muted);font-size:13px}
-button{border:0;border-radius:10px;padding:12px 17px;font-weight:700;background:var(--blue);color:#071321;cursor:pointer}
-button:disabled{opacity:.55;cursor:wait}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}
-.stat,.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
-.stat small{display:block;color:var(--muted);font-size:12px}.stat b{font-size:22px}
-.note{border:1px solid #594a2d;background:#2b2417;color:#ffe1a6;border-radius:12px;padding:12px;font-size:13px;line-height:1.5}
-.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0}.toolbar label{font-size:13px;color:var(--muted)}
-select{background:#17253a;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px}
-#status{color:var(--muted);font-size:13px;margin:10px 0}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
-.signal{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px}
-.signal.long{border-left:4px solid var(--green)}.signal.short{border-left:4px solid var(--red)}
-.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.symbol{font-size:19px;font-weight:800}.tag{font-size:11px;font-weight:800;padding:5px 8px;border-radius:20px}
-.long .tag{background:#123d30;color:#7df0b8}.short .tag{background:#49232b;color:#ff9da8}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.cell small{display:block;color:var(--muted);font-size:11px}.cell b{font-size:14px;overflow-wrap:anywhere}
-.empty{padding:28px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:14px}
-.footer{color:var(--muted);font-size:12px;line-height:1.55;margin-top:18px}
-@media(max-width:520px){.wrap{padding:13px}.stats{gap:7px}.stat{padding:10px}.stat b{font-size:18px}h1{font-size:21px}}
+:root{color-scheme:dark;--bg:#0b1220;--panel:#121d30;--line:#26364f;--muted:#9aa9bd;--text:#e8eef8;--blue:#70adff;--green:#23c98b;--red:#ff6680;--gold:#f0c979}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:1050px;margin:auto;padding:22px 16px 40px}
+h1{font-size:27px;margin:0 0 4px}p.sub{color:var(--muted);margin:0 0 20px}
+button,select,input{font:inherit;color:var(--text);background:#1a2940;border:1px solid #344863;border-radius:12px;padding:11px 13px}
+button{background:var(--blue);color:#071426;border:0;font-weight:750;cursor:pointer;padding:13px 20px}
+button:disabled{opacity:.55;cursor:wait}
+.controls,.stats,.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.stats{margin:18px 0}.stat{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:12px 15px;flex:1;min-width:130px}
+.stat small{display:block;color:var(--muted)}.stat strong{font-size:23px}
+.filters{background:var(--panel);border:1px solid var(--line);padding:13px;border-radius:15px;margin-bottom:14px}
+.filters label{display:flex;gap:8px;align-items:center;color:var(--muted);flex-wrap:wrap}
+.note{padding:14px 16px;background:#282416;border:1px solid #65532c;border-radius:14px;color:#f2dda8;margin:16px 0}
+.status{color:var(--muted);margin:14px 0}
+.results{display:grid;gap:11px}
+.coin{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:14px}
+.coinhead{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.symbol{font-size:18px;font-weight:800}.muted{color:var(--muted);font-size:13px}
+.pill{border-radius:99px;padding:4px 10px;font-size:12px;font-weight:800}
+.long{background:#103b31;color:#5ce0b1}.short{background:#451d2a;color:#ff91a4}.watch{background:#3b321a;color:#f4d27c}
+.metrics{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;color:#c4d0df;font-size:13px}
+.empty{border:1px dashed #344863;border-radius:15px;padding:28px 18px;text-align:center;color:var(--muted)}
+footer{color:var(--muted);font-size:12px;margin-top:24px}
+.progress{height:7px;background:#1a2940;border-radius:99px;overflow:hidden;margin-top:10px}.bar{height:100%;width:0;background:var(--blue);transition:width .2s}
+@media(min-width:700px){.results{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="top">
-    <div><h1>Futures Entry Scanner</h1><div class="sub">Binance USDT-M Perpetual · LONG & SHORT · sinyal terkonfirmasi</div></div>
-    <button id="scanBtn" onclick="startScan()">SCAN SEKARANG</button>
+<main>
+  <h1>EMA Momentum Scanner</h1>
+  <p class="sub">Binance USDⓈ-M Perpetual · LONG & SHORT · EMA 9 / 21 / 50</p>
+  <div class="controls">
+    <button id="scanBtn">SCAN SEKARANG</button>
+    <button id="autoBtn" type="button" style="background:#243650;color:#e8eef8">Auto scan: Mati</button>
   </div>
   <div class="stats">
-    <div class="stat"><small>Coin diperiksa</small><b id="checked">0</b></div>
-    <div class="stat"><small>Sinyal LONG</small><b id="longCount" style="color:var(--green)">0</b></div>
-    <div class="stat"><small>Sinyal SHORT</small><b id="shortCount" style="color:var(--red)">0</b></div>
+    <div class="stat"><small>Pair aktif</small><strong id="activeCount">—</strong></div>
+    <div class="stat"><small>Lolos volume</small><strong id="eligibleCount">—</strong></div>
+    <div class="stat"><small>Coin diperiksa</small><strong id="checkedCount">0</strong></div>
+    <div class="stat"><small>Sinyal LONG / SHORT</small><strong><span id="longCount" style="color:var(--green)">0</span> / <span id="shortCount" style="color:var(--red)">0</span></strong></div>
   </div>
-  <div class="note"><b>Aturan scanner:</b> struktur swing 4H menentukan arah. Di 1H harus ada liquidity sweep, break of structure (BOS), lalu retest dan candle penolakan. Hanya candle yang sudah tutup yang dihitung. Scanner tidak menampilkan sinyal yang belum lengkap.</div>
-  <div class="toolbar">
-    <label>Volume minimum 24 jam:
-      <select id="volumeFilter"><option value="50000000" selected>50 juta USDT</option><option value="100000000">100 juta USDT</option><option value="20000000">20 juta USDT</option></select>
+  <div class="filters">
+    <label>Volume minimum 24 jam
+      <select id="minVol">
+        <option value="20000000">20 juta USDT</option>
+        <option value="50000000" selected>50 juta USDT</option>
+        <option value="100000000">100 juta USDT</option>
+        <option value="200000000">200 juta USDT</option>
+      </select>
     </label>
-    <label>Jumlah coin:
-      <select id="coinLimit"><option value="60">60</option><option value="100" selected>100</option><option value="150">150</option></select>
+    <label>Maksimal coin
+      <select id="maxCoins">
+        <option>50</option><option selected>100</option><option>150</option><option>200</option><option>300</option><option>500</option>
+      </select>
     </label>
-    <label>Auto scan:
-      <select id="autoScan"><option value="0" selected>Mati</option><option value="15">15 menit</option><option value="30">30 menit</option><option value="60">60 menit</option></select>
-    </label>
+    <label><input id="showWatch" type="checkbox" checked> Tampilkan kandidat pantauan</label>
   </div>
-  <div id="status">Tekan SCAN SEKARANG untuk mulai.</div>
-  <div id="results" class="cards"><div class="empty">Belum ada hasil scan.</div></div>
-  <div class="footer">
-    Data publik Binance Futures. Sinyal adalah hasil penyaringan teknikal, bukan kepastian profit. Periksa spread, funding, berita, dan chart sebelum entry. Gunakan risiko kecil; SL bisa tetap tersentuh. Entry dihitung dari penutupan candle 1H terakhir, sehingga harga pasar dapat berubah.
-  </div>
-</div>
+  <div class="note"><b>Logika sinyal:</b> EMA 9, 21, dan 50 harus tersusun searah. Persilangan EMA 9/21 dan EMA 21/50 harus terjadi dalam 12 candle 1H terakhir (tidak wajib pada candle yang sama). Momentum dan aktivitas candle menjadi penilaian tambahan. Semua perhitungan memakai candle 1H yang sudah tutup.</div>
+  <div class="status" id="status">Tekan SCAN SEKARANG untuk mulai.</div>
+  <div class="progress"><div class="bar" id="bar"></div></div>
+  <div id="results" class="results" style="margin-top:14px"><div class="empty">Belum ada hasil pemindaian.</div></div>
+  <footer>Data publik Binance Futures. Sinyal adalah penyaringan teknikal, bukan kepastian profit. Periksa chart, spread, funding, dan risiko sebelum entry. Tidak ada sinyal bukan berarti harus memaksakan entry.</footer>
+</main>
 <script>
-const BASE='https://fapi.binance.com';
-let timer=null, busy=false;
 const $=id=>document.getElementById(id);
-const fmt=n=>Number(n).toLocaleString('en-US',{maximumFractionDigits:8});
-async function getJSON(path){
-  const r=await fetch(BASE+path);
-  if(!r.ok) throw new Error('Binance API: '+r.status);
+let busy=false,auto=false,autoTimer=null;
+const API='https://fapi.binance.com';
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function getJSON(url){
+  const r=await fetch(url,{cache:'no-store'});
+  if(!r.ok) throw new Error('HTTP '+r.status+' dari Binance');
   return r.json();
 }
-function candleData(rows){
-  // Kline: open time, open, high, low, close, volume, close time...
-  return rows.map(x=>({t:+x[0],o:+x[1],h:+x[2],l:+x[3],c:+x[4],v:+x[5]}));
+function ema(values,period){
+  const k=2/(period+1);let out=[],prev=values[0];
+  out.push(prev);
+  for(let i=1;i<values.length;i++){prev=values[i]*k+prev*(1-k);out.push(prev)}
+  return out;
 }
-function atr(c,period=14){
-  let trs=[];
-  for(let i=1;i<c.length;i++) trs.push(Math.max(c[i].h-c[i].l,Math.abs(c[i].h-c[i-1].c),Math.abs(c[i].l-c[i-1].c)));
-  const a=trs.slice(-period);
-  return a.reduce((s,x)=>s+x,0)/(a.length||1);
-}
-function pivots(c,left=2,right=2){
-  const highs=[],lows=[];
-  for(let i=left;i<c.length-right;i++){
-    let hi=true,lo=true;
-    for(let j=i-left;j<=i+right;j++){if(j===i)continue;if(c[j].h>=c[i].h)hi=false;if(c[j].l<=c[i].l)lo=false;}
-    if(hi)highs.push({i,p:c[i].h});if(lo)lows.push({i,p:c[i].l});
+function crossAge(a,b,dir,lookback=12){
+  // Return jumlah candle sejak cross terakhir; -1 jika tidak ditemukan.
+  for(let i=a.length-1;i>=Math.max(1,a.length-1-lookback);i--){
+    const crossed=dir==='up'?(a[i]>b[i]&&a[i-1]<=b[i-1]):(a[i]<b[i]&&a[i-1]>=b[i-1]);
+    if(crossed)return a.length-1-i;
   }
-  return {highs,lows};
+  return -1;
 }
-function bias4h(c){
-  const p=pivots(c,2,2), h=p.highs.slice(-2), l=p.lows.slice(-2);
-  if(h.length<2||l.length<2)return 'NEUTRAL';
-  if(h[1].p>h[0].p && l[1].p>l[0].p)return 'LONG';
-  if(h[1].p<h[0].p && l[1].p<l[0].p)return 'SHORT';
-  return 'NEUTRAL';
+function analyze(symbol,klines){
+  // Abaikan candle terakhir yang masih berjalan.
+  const rows=klines.slice(0,-1);
+  if(rows.length<80)return null;
+  const close=rows.map(x=>+x[4]),vol=rows.map(x=>+x[5]);
+  const e9=ema(close,9),e21=ema(close,21),e50=ema(close,50),i=close.length-1;
+  const up=e9[i]>e21[i]&&e21[i]>e50[i];
+  const down=e9[i]<e21[i]&&e21[i]<e50[i];
+  if(!up&&!down)return null;
+  const dir=up?'up':'down';
+  const age1=crossAge(e9,e21,dir,12),age2=crossAge(e21,e50,dir,12);
+  if(age1<0||age2<0)return null;
+  // Pastikan susunan EMA tetap konsisten pada candle tertutup terakhir.
+  const priceOK=up?close[i]>e9[i]:close[i]<e9[i];
+  if(!priceOK)return null;
+  const prev=close[i-1],change=((close[i]-prev)/prev)*100;
+  const slope=up?((e9[i]-e9[i-3])/e9[i-3])*100:((e9[i-3]-e9[i])/e9[i-3])*100;
+  const avgVol=vol.slice(-21,-1).reduce((a,b)=>a+b,0)/20;
+  const activity=avgVol>0?vol[i]/avgVol:0;
+  // Skor hanya untuk urutan prioritas, bukan probabilitas profit.
+  let score=50;
+  score+=Math.max(0,12-Math.max(age1,age2))*1.5;
+  score+=Math.min(15,Math.max(0,slope)*8);
+  score+=Math.min(10,Math.max(0,Math.abs(change))*3);
+  score+=Math.min(10,Math.max(0,activity-1)*5);
+  score=Math.min(99,Math.round(score));
+  const active=activity>=1.15 && Math.abs(change)>=0.25 && slope>0;
+  return {symbol,side:up?'LONG':'SHORT',score,age1,age2,change,slope,activity,active,price:close[i]};
 }
-function detectSignal(raw,bias){
-  // Buang candle paling akhir karena masih berjalan.
-  const c=raw.slice(0,-1);
-  if(c.length<55||bias==='NEUTRAL')return null;
-  const n=c.length-1, a=atr(c.slice(0,n+1));
-  if(!a)return null;
-  const start=Math.max(22,n-12);
-  for(let s=start;s<=n-4;s++){
-    if(bias==='LONG'){
-      const priorLow=Math.min(...c.slice(s-20,s).map(x=>x.l));
-      const sweep=c[s].l<priorLow && c[s].c>priorLow && c[s].c>c[s].o;
-      if(!sweep)continue;
-      for(let b=s+1;b<=Math.min(s+6,n-2);b++){
-        const bosLevel=Math.max(...c.slice(Math.max(s-8,0),b).map(x=>x.h));
-        if(c[b].c<=bosLevel || c[b].c-c[b].o<a*0.35)continue;
-        for(let r=b+1;r<=Math.min(b+5,n);r++){
-          const retest=c[r].l<=bosLevel+a*0.15 && c[r].c>bosLevel && c[r].c>c[r].o;
-          const notBroken=c.slice(r+1,n+1).every(x=>x.c>bosLevel-a*0.12);
-          if(!retest||!notBroken)continue;
-          const entry=c[n].c, sl=Math.min(...c.slice(r,n+1).map(x=>x.l))-a*0.20;
-          const risk=entry-sl, tp1=entry+risk*1.8, tp2=entry+risk*2.5;
-          if(risk<=0||risk>a*2.2||entry-bosLevel>a*1.0)continue;
-          return {side:'LONG',entry,sl,tp1,tp2,rr:'1:1.8+',time:c[n].t};
-        }
-      }
-    }else{
-      const priorHigh=Math.max(...c.slice(s-20,s).map(x=>x.h));
-      const sweep=c[s].h>priorHigh && c[s].c<priorHigh && c[s].c<c[s].o;
-      if(!sweep)continue;
-      for(let b=s+1;b<=Math.min(s+6,n-2);b++){
-        const bosLevel=Math.min(...c.slice(Math.max(s-8,0),b).map(x=>x.l));
-        if(c[b].c>=bosLevel || c[b].o-c[b].c<a*0.35)continue;
-        for(let r=b+1;r<=Math.min(b+5,n);r++){
-          const retest=c[r].h>=bosLevel-a*0.15 && c[r].c<bosLevel && c[r].c<c[r].o;
-          const notBroken=c.slice(r+1,n+1).every(x=>x.c<bosLevel+a*0.12);
-          if(!retest||!notBroken)continue;
-          const entry=c[n].c, sl=Math.max(...c.slice(r,n+1).map(x=>x.h))+a*0.20;
-          const risk=sl-entry, tp1=entry-risk*1.8, tp2=entry-risk*2.5;
-          if(risk<=0||risk>a*2.2||bosLevel-entry>a*1.0)continue;
-          return {side:'SHORT',entry,sl,tp1,tp2,rr:'1:1.8+',time:c[n].t};
-        }
-      }
-    }
+async function scan(){
+ if(busy)return;busy=true;$('scanBtn').disabled=true;$('results').innerHTML='';
+ $('status').textContent='Mengambil daftar pair Futures Binance…';$('bar').style.width='2%';
+ try{
+  const [info,tickers]=await Promise.all([
+   getJSON(API+'/fapi/v1/exchangeInfo'),
+   getJSON(API+'/fapi/v1/ticker/24hr')
+  ]);
+  const valid=new Set(info.symbols.filter(s=>s.status==='TRADING'&&s.contractType==='PERPETUAL'&&s.quoteAsset==='USDT').map(s=>s.symbol));
+  const all=tickers.filter(t=>valid.has(t.symbol));
+  const min=+$('minVol').value;
+  const eligible=all.filter(t=>+t.quoteVolume>=min).sort((a,b)=>+b.quoteVolume-+a.quoteVolume);
+  const limit=+$('maxCoins').value,targets=eligible.slice(0,limit);
+  $('activeCount').textContent=valid.size;$('eligibleCount').textContent=eligible.length;
+  $('status').textContent=`Ada ${valid.size} pair aktif; ${eligible.length} lolos volume. Memeriksa maksimal ${targets.length} coin…`;
+  let checked=0,found=[];
+  const concurrency=6;let next=0;
+  async function worker(){
+   while(next<targets.length){
+    const item=targets[next++];
+    try{
+     const k=await getJSON(API+`/fapi/v1/klines?symbol=${item.symbol}&interval=1h&limit=100`);
+     const result=analyze(item.symbol,k);
+     if(result){result.quoteVolume=+item.quoteVolume;found.push(result)}
+    }catch(e){/* pair gagal di-skip; pemindaian pair lain tetap berjalan */}
+    checked++;$('checkedCount').textContent=checked;
+    $('bar').style.width=(targets.length?Math.round(checked/targets.length*100):100)+'%';
+    $('status').textContent=`Memeriksa ${checked}/${targets.length} coin…`;
+   }
   }
-  return null;
+  await Promise.all(Array.from({length:Math.min(concurrency,targets.length)},worker));
+  found.sort((a,b)=>b.score-a.score||b.quoteVolume-a.quoteVolume);
+  const longs=found.filter(x=>x.side==='LONG').length,shorts=found.filter(x=>x.side==='SHORT').length;
+  $('longCount').textContent=longs;$('shortCount').textContent=shorts;
+  render(found);
+  $('status').textContent=`Selesai. ${checked} coin diperiksa dari ${eligible.length} yang lolos volume. ${found.length} sinyal EMA lengkap ditemukan.`;
+ }catch(e){
+  $('status').textContent='Gagal mengambil data: '+e.message+'. Coba lagi beberapa saat; pastikan koneksi internet aktif.';
+  $('results').innerHTML='<div class="empty">Data Binance belum bisa diambil. Coba tekan SCAN SEKARANG lagi.</div>';
+ }finally{busy=false;$('scanBtn').disabled=false}
 }
-async function pool(items,limit,fn){
-  let idx=0,done=0;
-  const workers=Array.from({length:limit},async()=>{
-    while(idx<items.length){
-      const item=items[idx++];
-      try{await fn(item)}catch(e){}
-      done++; $('status').textContent=`Memeriksa coin ${done}/${items.length}...`;
-    }
-  });
-  await Promise.all(workers);
+function render(items){
+ const showWatch=$('showWatch').checked;
+ const list=items.filter(x=>showWatch||x.active);
+ if(!list.length){$('results').innerHTML='<div class="empty">Belum ada persilangan EMA lengkap yang masih baru dan searah. Ini bukan error; tunggu setup terbentuk, atau turunkan volume minimum bila ingin memperluas daftar coin.</div>';return}
+ $('results').innerHTML=list.map(x=>{
+  const cls=x.side==='LONG'?'long':'short';
+  const label=x.active?'MOMENTUM AKTIF':'KANDIDAT';
+  return `<article class="coin">
+   <div class="coinhead"><div><div class="symbol">${x.symbol.replace('USDT','')} / USDT</div><div class="muted">Volume 24 jam: ${(x.quoteVolume/1e6).toFixed(1)} juta USDT</div></div><span class="pill ${cls}">${x.side} · ${label}</span></div>
+   <div class="metrics"><span>Skor prioritas: <b>${x.score}/99</b></span><span>Cross 9/21: ${x.age1} candle lalu</span><span>Cross 21/50: ${x.age2} candle lalu</span><span>Perubahan 1H: ${x.change.toFixed(2)}%</span><span>Aktivitas volume: ${x.activity.toFixed(2)}× rata-rata</span></div>
+  </article>`;
+ }).join('');
 }
-async function startScan(){
-  if(busy)return;busy=true;$('scanBtn').disabled=true;$('scanBtn').textContent='SEDANG SCAN...';
-  $('results').innerHTML='<div class="empty">Sedang mencari sinyal matang. Mohon tunggu...</div>';
-  $('checked').textContent='0';$('longCount').textContent='0';$('shortCount').textContent='0';
-  const signals=[];let checked=0;
-  try{
-    $('status').textContent='Mengambil daftar kontrak Binance Futures...';
-    const [info,tickers]=await Promise.all([getJSON('/fapi/v1/exchangeInfo'),getJSON('/fapi/v1/ticker/24hr')]);
-    const valid=new Set(info.symbols.filter(s=>s.contractType==='PERPETUAL'&&s.quoteAsset==='USDT'&&s.status==='TRADING').map(s=>s.symbol));
-    const minVol=+$('volumeFilter').value, limit=+$('coinLimit').value;
-    const coins=tickers.filter(t=>valid.has(t.symbol)&&+t.quoteVolume>=minVol).sort((a,b)=>+b.quoteVolume-+a.quoteVolume).slice(0,limit);
-    if(!coins.length)throw new Error('Tidak ada coin yang memenuhi filter volume.');
-    $('status').textContent=`Menyiapkan scan ${coins.length} coin...`;
-    await pool(coins,7,async t=>{
-      const [h1,h4]=await Promise.all([
-        getJSON(`/fapi/v1/klines?symbol=${t.symbol}&interval=1h&limit=100`),
-        getJSON(`/fapi/v1/klines?symbol=${t.symbol}&interval=4h&limit=90`)
-      ]);
-      const b=bias4h(candleData(h4));
-      if(b!=='NEUTRAL'){
-        const sig=detectSignal(candleData(h1),b);
-        if(sig)signals.push({...sig,symbol:t.symbol,volume:+t.quoteVolume});
-      }
-      checked++;$('checked').textContent=checked;
-    });
-    signals.sort((a,b)=>b.volume-a.volume);
-    $('longCount').textContent=signals.filter(x=>x.side==='LONG').length;
-    $('shortCount').textContent=signals.filter(x=>x.side==='SHORT').length;
-    render(signals);
-    $('status').textContent=`Selesai. ${checked} coin diperiksa · ${signals.length} sinyal siap entry ditemukan.`;
-  }catch(e){
-    $('status').textContent='Gagal scan: '+e.message+'. Coba lagi beberapa saat lagi.';
-    $('results').innerHTML='<div class="empty">Data belum berhasil diambil. Periksa koneksi internet lalu scan ulang.</div>';
-  }finally{
-    busy=false;$('scanBtn').disabled=false;$('scanBtn').textContent='SCAN SEKARANG';
-  }
-}
-function render(list){
-  if(!list.length){$('results').innerHTML='<div class="empty">Belum ada LONG ENTRY atau SHORT ENTRY yang memenuhi semua syarat. Ini normal. Jangan memaksakan entry.</div>';return;}
-  $('results').innerHTML=list.map(s=>`
-    <article class="signal ${s.side.toLowerCase()}">
-      <div class="head"><div class="symbol">${s.symbol.replace('USDT','/USDT')}</div><span class="tag">${s.side} ENTRY</span></div>
-      <div class="grid">
-        <div class="cell"><small>ENTRY (harga candle 1H tutup)</small><b>${fmt(s.entry)}</b></div>
-        <div class="cell"><small>STOP LOSS</small><b>${fmt(s.sl)}</b></div>
-        <div class="cell"><small>TAKE PROFIT 1</small><b>${fmt(s.tp1)}</b></div>
-        <div class="cell"><small>TAKE PROFIT 2</small><b>${fmt(s.tp2)}</b></div>
-        <div class="cell"><small>RISK / REWARD TP1</small><b>${s.rr}</b></div>
-        <div class="cell"><small>VOLUME 24 JAM</small><b>${(s.volume/1e6).toFixed(1)}M USDT</b></div>
-      </div>
-    </article>`).join('');
-}
-$('autoScan').addEventListener('change',()=>{
-  if(timer)clearInterval(timer);timer=null;
-  const mins=+$('autoScan').value;
-  if(mins)timer=setInterval(()=>{if(!busy)startScan()},mins*60*1000);
+$('scanBtn').addEventListener('click',scan);
+$('showWatch').addEventListener('change',()=>scan());
+$('autoBtn').addEventListener('click',()=>{
+ auto=!auto;$('autoBtn').textContent='Auto scan: '+(auto?'Nyala':'Mati');
+ if(auto){scan();autoTimer=setInterval(()=>{if(!busy)scan()},5*60*1000)}
+ else{clearInterval(autoTimer);autoTimer=null}
 });
 </script>
 </body>
