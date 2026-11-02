@@ -3,165 +3,210 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Whale Intelligence Scanner</title>
+<title>Futures Entry Scanner</title>
 <style>
-:root{--bg:#0b1020;--panel:#121a2d;--panel2:#18233b;--line:#263653;--text:#eaf0ff;--muted:#9aa9c4;--green:#31d69a;--red:#ff667d;--yellow:#ffc857;--blue:#75a7ff}
-*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#0b1020,#101a2d);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial}
-.wrap{max-width:1180px;margin:auto;padding:18px}.head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-h1{font-size:23px;margin:0}.sub{color:var(--muted);margin-top:4px}.pill{border:1px solid var(--line);padding:7px 11px;border-radius:999px;color:var(--muted);font-size:12px}
-.controls{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.btn,select,input{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px 12px}.btn{cursor:pointer;font-weight:650}.btn.primary{background:#2454a6;border-color:#3974d5}.btn:disabled{opacity:.5;cursor:wait}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}.stat,.card,.section{background:rgba(18,26,45,.94);border:1px solid var(--line);border-radius:14px;padding:14px}.stat b{display:block;font-size:22px}.stat span{color:var(--muted);font-size:12px}
-.notice{padding:11px 13px;border:1px solid #66552d;background:#2a2417;color:#ffdfa0;border-radius:10px;margin:12px 0}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.section h2{font-size:16px;margin:0 0 10px}.section h2 small{color:var(--muted);font-weight:400}
-.coin{padding:12px 0;border-top:1px solid var(--line)}.coin:first-of-type{border-top:0}.coinhead{display:flex;justify-content:space-between;gap:8px;align-items:center}.symbol{font-weight:800;font-size:15px}.score{font-weight:800;font-size:17px}.green{color:var(--green)}.red{color:var(--red)}.yellow{color:var(--yellow)}.muted{color:var(--muted)}
-.tags{display:flex;gap:5px;flex-wrap:wrap;margin:7px 0}.tag{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:3px 7px;color:#c4d2ed}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}.metric{background:var(--panel2);padding:7px;border-radius:8px}.metric span{display:block;color:var(--muted);font-size:10px}.metric b{font-size:12px}
-.empty{color:var(--muted);padding:18px 0}.foot{color:var(--muted);font-size:12px;margin:16px 2px}.status{color:var(--blue);font-size:12px}
-@media(max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}h1{font-size:20px}}
+:root{color-scheme:dark;--bg:#0b1220;--panel:#111c2e;--line:#26364d;--muted:#9aabc2;--text:#eef4ff;--green:#20c77a;--red:#ff6474;--blue:#69a9ff;--amber:#ffc766}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:1100px;margin:auto;padding:18px}.top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+h1{font-size:24px;margin:0 0 5px}.sub{color:var(--muted);font-size:13px}
+button{border:0;border-radius:10px;padding:12px 17px;font-weight:700;background:var(--blue);color:#071321;cursor:pointer}
+button:disabled{opacity:.55;cursor:wait}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}
+.stat,.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+.stat small{display:block;color:var(--muted);font-size:12px}.stat b{font-size:22px}
+.note{border:1px solid #594a2d;background:#2b2417;color:#ffe1a6;border-radius:12px;padding:12px;font-size:13px;line-height:1.5}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0}.toolbar label{font-size:13px;color:var(--muted)}
+select{background:#17253a;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px}
+#status{color:var(--muted);font-size:13px;margin:10px 0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.signal{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px}
+.signal.long{border-left:4px solid var(--green)}.signal.short{border-left:4px solid var(--red)}
+.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.symbol{font-size:19px;font-weight:800}.tag{font-size:11px;font-weight:800;padding:5px 8px;border-radius:20px}
+.long .tag{background:#123d30;color:#7df0b8}.short .tag{background:#49232b;color:#ff9da8}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.cell small{display:block;color:var(--muted);font-size:11px}.cell b{font-size:14px;overflow-wrap:anywhere}
+.empty{padding:28px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:14px}
+.footer{color:var(--muted);font-size:12px;line-height:1.55;margin-top:18px}
+@media(max-width:520px){.wrap{padding:13px}.stats{gap:7px}.stat{padding:10px}.stat b{font-size:18px}h1{font-size:21px}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="head">
-    <div><h1>🐋 WHALE INTELLIGENCE</h1><div class="sub">Early activity · calon BIG MOVE · Binance USDT Perpetual</div></div>
-    <div class="pill" id="lastUpdate">Belum diperbarui</div>
-  </div>
-  <div class="controls">
-    <button class="btn primary" id="scanBtn">⟳ MULAI / SCAN ULANG</button>
-    <select id="universe"><option value="80">Pantau 80 kandidat likuid</option><option value="120">Pantau 120 kandidat</option><option value="50">Pantau 50 kandidat (lebih cepat)</option></select>
-    <select id="minVol"><option value="20000000">Min volume 24J: $20 juta</option><option value="50000000" selected>Min volume 24J: $50 juta</option><option value="100000000">Min volume 24J: $100 juta</option><option value="0">Tanpa batas volume</option></select>
-    <button class="btn" id="autoBtn">Auto-refresh: OFF</button>
+  <div class="top">
+    <div><h1>Futures Entry Scanner</h1><div class="sub">Binance USDT-M Perpetual · LONG & SHORT · sinyal terkonfirmasi</div></div>
+    <button id="scanBtn" onclick="startScan()">SCAN SEKARANG</button>
   </div>
   <div class="stats">
-    <div class="stat"><b id="scanned">0</b><span>Coin dianalisis</span></div>
-    <div class="stat"><b id="active">0</b><span>Aktivitas meningkat</span></div>
-    <div class="stat"><b id="longN" class="green">0</b><span>Kandidat LONG</span></div>
-    <div class="stat"><b id="shortN" class="red">0</b><span>Kandidat SHORT</span></div>
+    <div class="stat"><small>Coin diperiksa</small><b id="checked">0</b></div>
+    <div class="stat"><small>Sinyal LONG</small><b id="longCount" style="color:var(--green)">0</b></div>
+    <div class="stat"><small>Sinyal SHORT</small><b id="shortCount" style="color:var(--red)">0</b></div>
   </div>
-  <div class="notice"><b>Catatan:</b> skor adalah peringkat indikasi, bukan bukti transaksi whale dan bukan sinyal entry otomatis. Tunggu candle 1H selesai dan periksa chart 15M sebelum mengambil keputusan.</div>
-  <div class="status" id="status">Tekan MULAI / SCAN ULANG untuk mengambil data pasar.</div>
-  <div class="grid" style="margin-top:12px">
-    <section class="section"><h2 class="green">▲ EARLY LONG <small>3 kandidat terbaik</small></h2><div id="longList" class="empty">Belum ada hasil scan.</div></section>
-    <section class="section"><h2 class="red">▼ EARLY SHORT <small>3 kandidat terbaik</small></h2><div id="shortList" class="empty">Belum ada hasil scan.</div></section>
+  <div class="note"><b>Aturan scanner:</b> struktur swing 4H menentukan arah. Di 1H harus ada liquidity sweep, break of structure (BOS), lalu retest dan candle penolakan. Hanya candle yang sudah tutup yang dihitung. Scanner tidak menampilkan sinyal yang belum lengkap.</div>
+  <div class="toolbar">
+    <label>Volume minimum 24 jam:
+      <select id="volumeFilter"><option value="50000000" selected>50 juta USDT</option><option value="100000000">100 juta USDT</option><option value="20000000">20 juta USDT</option></select>
+    </label>
+    <label>Jumlah coin:
+      <select id="coinLimit"><option value="60">60</option><option value="100" selected>100</option><option value="150">150</option></select>
+    </label>
+    <label>Auto scan:
+      <select id="autoScan"><option value="0" selected>Mati</option><option value="15">15 menit</option><option value="30">30 menit</option><option value="60">60 menit</option></select>
+    </label>
   </div>
-  <section class="section" style="margin-top:12px"><h2>📡 WATCHLIST AKTIVITAS <small>coin yang mulai tidak biasa</small></h2><div id="watchList" class="empty">Belum ada hasil scan.</div></section>
-  <div class="foot">
-    Data publik Binance Futures. Scanner mengambil gabungan coin bervolume besar dan Top Gainer/Loser, lalu memeriksa candle 1H. OI diperiksa hanya pada kandidat teratas untuk mengurangi beban API. Data browser dapat gagal jika akses API/CORS atau koneksi dibatasi.
+  <div id="status">Tekan SCAN SEKARANG untuk mulai.</div>
+  <div id="results" class="cards"><div class="empty">Belum ada hasil scan.</div></div>
+  <div class="footer">
+    Data publik Binance Futures. Sinyal adalah hasil penyaringan teknikal, bukan kepastian profit. Periksa spread, funding, berita, dan chart sebelum entry. Gunakan risiko kecil; SL bisa tetap tersentuh. Entry dihitung dari penutupan candle 1H terakhir, sehingga harga pasar dapat berubah.
   </div>
 </div>
 <script>
-const API='https://fapi.binance.com';
-let busy=false, autoTimer=null;
+const BASE='https://fapi.binance.com';
+let timer=null, busy=false;
 const $=id=>document.getElementById(id);
-const fmt=(n,d=2)=>Number.isFinite(n)?n.toLocaleString('en-US',{maximumFractionDigits:d}):'—';
-const pct=n=>(n>=0?'+':'')+fmt(n)+'%';
-async function get(url){
-  const r=await fetch(url,{cache:'no-store'});
-  if(!r.ok) throw new Error('HTTP '+r.status+' '+url);
+const fmt=n=>Number(n).toLocaleString('en-US',{maximumFractionDigits:8});
+async function getJSON(path){
+  const r=await fetch(BASE+path);
+  if(!r.ok) throw new Error('Binance API: '+r.status);
   return r.json();
 }
+function candleData(rows){
+  // Kline: open time, open, high, low, close, volume, close time...
+  return rows.map(x=>({t:+x[0],o:+x[1],h:+x[2],l:+x[3],c:+x[4],v:+x[5]}));
+}
+function atr(c,period=14){
+  let trs=[];
+  for(let i=1;i<c.length;i++) trs.push(Math.max(c[i].h-c[i].l,Math.abs(c[i].h-c[i-1].c),Math.abs(c[i].l-c[i-1].c)));
+  const a=trs.slice(-period);
+  return a.reduce((s,x)=>s+x,0)/(a.length||1);
+}
+function pivots(c,left=2,right=2){
+  const highs=[],lows=[];
+  for(let i=left;i<c.length-right;i++){
+    let hi=true,lo=true;
+    for(let j=i-left;j<=i+right;j++){if(j===i)continue;if(c[j].h>=c[i].h)hi=false;if(c[j].l<=c[i].l)lo=false;}
+    if(hi)highs.push({i,p:c[i].h});if(lo)lows.push({i,p:c[i].l});
+  }
+  return {highs,lows};
+}
+function bias4h(c){
+  const p=pivots(c,2,2), h=p.highs.slice(-2), l=p.lows.slice(-2);
+  if(h.length<2||l.length<2)return 'NEUTRAL';
+  if(h[1].p>h[0].p && l[1].p>l[0].p)return 'LONG';
+  if(h[1].p<h[0].p && l[1].p<l[0].p)return 'SHORT';
+  return 'NEUTRAL';
+}
+function detectSignal(raw,bias){
+  // Buang candle paling akhir karena masih berjalan.
+  const c=raw.slice(0,-1);
+  if(c.length<55||bias==='NEUTRAL')return null;
+  const n=c.length-1, a=atr(c.slice(0,n+1));
+  if(!a)return null;
+  const start=Math.max(22,n-12);
+  for(let s=start;s<=n-4;s++){
+    if(bias==='LONG'){
+      const priorLow=Math.min(...c.slice(s-20,s).map(x=>x.l));
+      const sweep=c[s].l<priorLow && c[s].c>priorLow && c[s].c>c[s].o;
+      if(!sweep)continue;
+      for(let b=s+1;b<=Math.min(s+6,n-2);b++){
+        const bosLevel=Math.max(...c.slice(Math.max(s-8,0),b).map(x=>x.h));
+        if(c[b].c<=bosLevel || c[b].c-c[b].o<a*0.35)continue;
+        for(let r=b+1;r<=Math.min(b+5,n);r++){
+          const retest=c[r].l<=bosLevel+a*0.15 && c[r].c>bosLevel && c[r].c>c[r].o;
+          const notBroken=c.slice(r+1,n+1).every(x=>x.c>bosLevel-a*0.12);
+          if(!retest||!notBroken)continue;
+          const entry=c[n].c, sl=Math.min(...c.slice(r,n+1).map(x=>x.l))-a*0.20;
+          const risk=entry-sl, tp1=entry+risk*1.8, tp2=entry+risk*2.5;
+          if(risk<=0||risk>a*2.2||entry-bosLevel>a*1.0)continue;
+          return {side:'LONG',entry,sl,tp1,tp2,rr:'1:1.8+',time:c[n].t};
+        }
+      }
+    }else{
+      const priorHigh=Math.max(...c.slice(s-20,s).map(x=>x.h));
+      const sweep=c[s].h>priorHigh && c[s].c<priorHigh && c[s].c<c[s].o;
+      if(!sweep)continue;
+      for(let b=s+1;b<=Math.min(s+6,n-2);b++){
+        const bosLevel=Math.min(...c.slice(Math.max(s-8,0),b).map(x=>x.l));
+        if(c[b].c>=bosLevel || c[b].o-c[b].c<a*0.35)continue;
+        for(let r=b+1;r<=Math.min(b+5,n);r++){
+          const retest=c[r].h>=bosLevel-a*0.15 && c[r].c<bosLevel && c[r].c<c[r].o;
+          const notBroken=c.slice(r+1,n+1).every(x=>x.c<bosLevel+a*0.12);
+          if(!retest||!notBroken)continue;
+          const entry=c[n].c, sl=Math.max(...c.slice(r,n+1).map(x=>x.h))+a*0.20;
+          const risk=sl-entry, tp1=entry-risk*1.8, tp2=entry-risk*2.5;
+          if(risk<=0||risk>a*2.2||bosLevel-entry>a*1.0)continue;
+          return {side:'SHORT',entry,sl,tp1,tp2,rr:'1:1.8+',time:c[n].t};
+        }
+      }
+    }
+  }
+  return null;
+}
 async function pool(items,limit,fn){
-  let i=0,out=[];
-  const workers=Array.from({length:Math.min(limit,items.length)},async()=>{
-    while(i<items.length){const k=i++;try{out[k]=await fn(items[k]);}catch(e){out[k]=null;}}
+  let idx=0,done=0;
+  const workers=Array.from({length:limit},async()=>{
+    while(idx<items.length){
+      const item=items[idx++];
+      try{await fn(item)}catch(e){}
+      done++; $('status').textContent=`Memeriksa coin ${done}/${items.length}...`;
+    }
   });
-  await Promise.all(workers);return out.filter(Boolean);
+  await Promise.all(workers);
 }
-function analyzeKlines(k){
-  if(!k||k.length<25)return null;
-  const closed=k.slice(0,-1), last=closed.at(-1), prev=closed.slice(-20,-1);
-  const closes=closed.map(x=>+x[4]), highs=closed.map(x=>+x[2]), lows=closed.map(x=>+x[3]);
-  const vol=+last[5], avgVol=prev.reduce((s,x)=>s+(+x[5]),0)/Math.max(1,prev.length);
-  const range=(+last[2]-+last[3])/(+last[4]||1)*100;
-  const prevRange=prev.reduce((s,x)=>s+((+x[2]-+x[3])/(+x[4]||1)*100),0)/Math.max(1,prev.length);
-  const change=(+last[4]/(+last[1]||+last[4])-1)*100;
-  const ema=(arr,p)=>{let a=arr.slice(0,p).reduce((s,v)=>s+v,0)/p;for(let j=p;j<arr.length;j++)a=arr[j]*(2/(p+1))+a*(1-2/(p+1));return a;};
-  const e9=ema(closes,9),e21=ema(closes,21);
-  const recentHigh=Math.max(...highs.slice(-8,-1)),recentLow=Math.min(...lows.slice(-8,-1));
-  const breakoutUp=+last[4]>recentHigh,breakoutDown=+last[4]<recentLow;
-  return {change,volRatio:avgVol?vol/avgVol:0,rangeRatio:prevRange?range/prevRange:0,e9,e21,close:+last[4],breakoutUp,breakoutDown,high:recentHigh,low:recentLow};
-}
-async function getOI(symbol){
+async function startScan(){
+  if(busy)return;busy=true;$('scanBtn').disabled=true;$('scanBtn').textContent='SEDANG SCAN...';
+  $('results').innerHTML='<div class="empty">Sedang mencari sinyal matang. Mohon tunggu...</div>';
+  $('checked').textContent='0';$('longCount').textContent='0';$('shortCount').textContent='0';
+  const signals=[];let checked=0;
   try{
-    const a=await get(`${API}/futures/data/openInterestHist?symbol=${symbol}&period=1h&limit=3`);
-    if(a.length>=2){const old=+a[a.length-2].sumOpenInterest,now=+a[a.length-1].sumOpenInterest;return old?((now/old)-1)*100:NaN;}
-  }catch(e){}
-  return NaN;
+    $('status').textContent='Mengambil daftar kontrak Binance Futures...';
+    const [info,tickers]=await Promise.all([getJSON('/fapi/v1/exchangeInfo'),getJSON('/fapi/v1/ticker/24hr')]);
+    const valid=new Set(info.symbols.filter(s=>s.contractType==='PERPETUAL'&&s.quoteAsset==='USDT'&&s.status==='TRADING').map(s=>s.symbol));
+    const minVol=+$('volumeFilter').value, limit=+$('coinLimit').value;
+    const coins=tickers.filter(t=>valid.has(t.symbol)&&+t.quoteVolume>=minVol).sort((a,b)=>+b.quoteVolume-+a.quoteVolume).slice(0,limit);
+    if(!coins.length)throw new Error('Tidak ada coin yang memenuhi filter volume.');
+    $('status').textContent=`Menyiapkan scan ${coins.length} coin...`;
+    await pool(coins,7,async t=>{
+      const [h1,h4]=await Promise.all([
+        getJSON(`/fapi/v1/klines?symbol=${t.symbol}&interval=1h&limit=100`),
+        getJSON(`/fapi/v1/klines?symbol=${t.symbol}&interval=4h&limit=90`)
+      ]);
+      const b=bias4h(candleData(h4));
+      if(b!=='NEUTRAL'){
+        const sig=detectSignal(candleData(h1),b);
+        if(sig)signals.push({...sig,symbol:t.symbol,volume:+t.quoteVolume});
+      }
+      checked++;$('checked').textContent=checked;
+    });
+    signals.sort((a,b)=>b.volume-a.volume);
+    $('longCount').textContent=signals.filter(x=>x.side==='LONG').length;
+    $('shortCount').textContent=signals.filter(x=>x.side==='SHORT').length;
+    render(signals);
+    $('status').textContent=`Selesai. ${checked} coin diperiksa · ${signals.length} sinyal siap entry ditemukan.`;
+  }catch(e){
+    $('status').textContent='Gagal scan: '+e.message+'. Coba lagi beberapa saat lagi.';
+    $('results').innerHTML='<div class="empty">Data belum berhasil diambil. Periksa koneksi internet lalu scan ulang.</div>';
+  }finally{
+    busy=false;$('scanBtn').disabled=false;$('scanBtn').textContent='SCAN SEKARANG';
+  }
 }
-function score(c){
-  let s=0;
-  // Aktivitas: volume relatif dan range expansion
-  if(c.volRatio>=1.5)s+=Math.min(15,7+(c.volRatio-1.5)*4);
-  if(c.rangeRatio>=1.3)s+=Math.min(10,5+(c.rangeRatio-1.3)*8);
-  // OI hanya bukti tambahan, bukan penentu tunggal
-  if(Number.isFinite(c.oiChange)){if(c.oiChange>0.5)s+=Math.min(15,5+c.oiChange*2);else if(c.oiChange<-.5)s+=4;}
-  if(c.breakoutUp||c.breakoutDown)s+=15;
-  if(Math.abs(c.change)>=0.35)s+=Math.min(15,Math.abs(c.change)*5);
-  if(c.directional)s+=10;
-  if(c.liquid)s+=10;
-  return Math.min(100,Math.round(s));
+function render(list){
+  if(!list.length){$('results').innerHTML='<div class="empty">Belum ada LONG ENTRY atau SHORT ENTRY yang memenuhi semua syarat. Ini normal. Jangan memaksakan entry.</div>';return;}
+  $('results').innerHTML=list.map(s=>`
+    <article class="signal ${s.side.toLowerCase()}">
+      <div class="head"><div class="symbol">${s.symbol.replace('USDT','/USDT')}</div><span class="tag">${s.side} ENTRY</span></div>
+      <div class="grid">
+        <div class="cell"><small>ENTRY (harga candle 1H tutup)</small><b>${fmt(s.entry)}</b></div>
+        <div class="cell"><small>STOP LOSS</small><b>${fmt(s.sl)}</b></div>
+        <div class="cell"><small>TAKE PROFIT 1</small><b>${fmt(s.tp1)}</b></div>
+        <div class="cell"><small>TAKE PROFIT 2</small><b>${fmt(s.tp2)}</b></div>
+        <div class="cell"><small>RISK / REWARD TP1</small><b>${s.rr}</b></div>
+        <div class="cell"><small>VOLUME 24 JAM</small><b>${(s.volume/1e6).toFixed(1)}M USDT</b></div>
+      </div>
+    </article>`).join('');
 }
-function card(c,side){
-  const cls=side==='LONG'?'green':'red';
-  const labels=[];
-  if(c.volRatio>=1.5)labels.push('Volume '+fmt(c.volRatio,1)+'×');
-  if(c.rangeRatio>=1.3)labels.push('Range melebar');
-  if(Number.isFinite(c.oiChange))labels.push('OI '+pct(c.oiChange));
-  if(c.breakoutUp)labels.push('Break high 1H');
-  if(c.breakoutDown)labels.push('Break low 1H');
-  if(c.emaBull)labels.push('EMA 9 > 21');
-  if(c.emaBear)labels.push('EMA 9 < 21');
-  return `<div class="coin"><div class="coinhead"><div><span class="symbol">${c.symbol}</span> <span class="muted">${side}</span></div><div class="score ${cls}">${c.score}/100</div></div><div class="tags">${labels.map(x=>`<span class="tag">${x}</span>`).join('')||'<span class="tag">Aktivitas awal</span>'}</div><div class="metrics"><div class="metric"><span>Perubahan 1H</span><b class="${c.change>=0?'green':'red'}">${pct(c.change)}</b></div><div class="metric"><span>Volume relatif</span><b>${fmt(c.volRatio,2)}×</b></div><div class="metric"><span>OI 1H</span><b>${pct(c.oiChange)}</b></div><div class="metric"><span>Volume 24J</span><b>$${fmt(c.quoteVol/1e6,1)}M</b></div></div><div class="muted" style="font-size:11px;margin-top:7px">${c.status}</div></div>`;
-}
-async function scan(){
- if(busy)return;busy=true;$('scanBtn').disabled=true;$('status').textContent='Mengambil daftar kontrak dan data pasar…';
- try{
-  const [info,tickers]=await Promise.all([get(API+'/fapi/v1/exchangeInfo'),get(API+'/fapi/v1/ticker/24hr')]);
-  const valid=new Set(info.symbols.filter(x=>x.status==='TRADING'&&x.contractType==='PERPETUAL'&&x.quoteAsset==='USDT').map(x=>x.symbol));
-  const minVol=+$('minVol').value;
-  const rows=tickers.filter(t=>valid.has(t.symbol)&&+t.quoteVolume>=minVol);
-  const byVol=[...rows].sort((a,b)=>+b.quoteVolume-+a.quoteVolume);
-  const gain=[...rows].sort((a,b)=>+b.priceChangePercent-+a.priceChangePercent).slice(0,25);
-  const loss=[...rows].sort((a,b)=>+a.priceChangePercent-+b.priceChangePercent).slice(0,25);
-  const chosen=new Map();
-  [...byVol.slice(0,+$('universe').value),...gain,...loss].forEach(t=>chosen.set(t.symbol,t));
-  const candidates=[...chosen.values()];
-  $('status').textContent=`Memeriksa candle 1H ${candidates.length} coin…`;
-  const base=await pool(candidates,6,async t=>{
-    const k=await get(`${API}/fapi/v1/klines?symbol=${t.symbol}&interval=1h&limit=30`);
-    const a=analyzeKlines(k);if(!a)return null;
-    return {...a,symbol:t.symbol,quoteVol:+t.quoteVolume,change24:+t.priceChangePercent};
-  });
-  // OI diperiksa hanya pada 18 kandidat dengan aktivitas paling menonjol.
-  const oiTargets=[...base].sort((a,b)=>(b.volRatio+b.rangeRatio+Math.abs(b.change))-(a.volRatio+a.rangeRatio+Math.abs(a.change))).slice(0,18);
-  const oiMap=new Map();
-  await pool(oiTargets,3,async c=>{oiMap.set(c.symbol,await getOI(c.symbol));return c;});
-  base.forEach(c=>{
-    c.oiChange=oiMap.has(c.symbol)?oiMap.get(c.symbol):NaN;
-    c.emaBull=c.e9>c.e21;c.emaBear=c.e9<c.e21;
-    c.directional=Math.abs(c.change)>=0.25&&(c.emaBull||c.emaBear);
-    c.liquid=c.quoteVol>=50000000;
-    c.score=score(c);
-    c.side=c.change>=0?'LONG':'SHORT';
-    c.status=c.score>=65?'Aktivitas kuat — periksa chart':c.score>=45?'Mulai aktif — tunggu konfirmasi':'Pantau dahulu, belum matang';
-  });
-  const longs=base.filter(c=>c.side==='LONG').sort((a,b)=>b.score-a.score).slice(0,3);
-  const shorts=base.filter(c=>c.side==='SHORT').sort((a,b)=>b.score-a.score).slice(0,3);
-  const watch=base.filter(c=>c.score>=35).sort((a,b)=>b.score-a.score).slice(0,12);
-  $('longList').innerHTML=longs.length?longs.map(c=>card(c,'LONG')).join(''):'<div class="empty">Belum ada kandidat LONG yang memenuhi kriteria.</div>';
-  $('shortList').innerHTML=shorts.length?shorts.map(c=>card(c,'SHORT')).join(''):'<div class="empty">Belum ada kandidat SHORT yang memenuhi kriteria.</div>';
-  $('watchList').innerHTML=watch.length?watch.map(c=>card(c,c.side)).join(''):'<div class="empty">Belum ditemukan aktivitas menonjol.</div>';
-  $('scanned').textContent=base.length;
-  $('active').textContent=base.filter(c=>c.score>=35).length;
-  $('longN').textContent=longs.length;$('shortN').textContent=shorts.length;
-  $('lastUpdate').textContent='Update '+new Date().toLocaleTimeString('id-ID');
-  $('status').textContent='Scan selesai. Hasil diurutkan berdasarkan skor aktivitas dan momentum.';
- }catch(e){$('status').textContent='Gagal mengambil data: '+e.message+'. Coba lagi beberapa saat atau buka melalui browser yang mengizinkan akses Binance API.';}
- finally{busy=false;$('scanBtn').disabled=false;}
-}
-$('scanBtn').addEventListener('click',scan);
-$('autoBtn').addEventListener('click',()=>{
- if(autoTimer){clearInterval(autoTimer);autoTimer=null;$('autoBtn').textContent='Auto-refresh: OFF';}
- else{autoTimer=setInterval(scan,5*60*1000);$('autoBtn').textContent='Auto-refresh: ON (5 menit)';scan();}
+$('autoScan').addEventListener('change',()=>{
+  if(timer)clearInterval(timer);timer=null;
+  const mins=+$('autoScan').value;
+  if(mins)timer=setInterval(()=>{if(!busy)startScan()},mins*60*1000);
 });
 </script>
 </body>
