@@ -1,107 +1,168 @@
 <!doctype html>
-<html lang="id"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#08111f"><title>SMC Market Scanner V3</title>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Whale Intelligence Scanner</title>
 <style>
-:root{color-scheme:dark;--bg:#08111f;--panel:#111d30;--line:#263750;--muted:#9aabc2;--text:#eef4ff;--green:#25c58b;--red:#ef596b;--blue:#6ba8ff;--amber:#f3bd55}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,sans-serif}
-header{padding:22px 16px 14px;text-align:center;background:linear-gradient(120deg,#14294a,#10182a)}h1{font-size:22px;margin:0 0 5px}header p{margin:0;color:var(--muted);font-size:12px}
-main{max-width:1200px;margin:auto;padding:14px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px;margin-bottom:13px}
-.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.field label{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}
-input,select,button{width:100%;padding:11px;border:1px solid var(--line);border-radius:9px;background:#0b1628;color:var(--text);font:inherit}
-button{background:#315fe8;border:0;font-weight:750;cursor:pointer;margin-top:12px}button:disabled{opacity:.5}.secondary{background:#263750}
-.status{color:var(--muted);font-size:12px;line-height:1.5;margin-top:10px}.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
-.stat{padding:12px;border:1px solid var(--line);border-radius:10px}.stat b{font-size:24px;display:block;margin-top:3px}
-.green{color:var(--green)}.red{color:var(--red)}.blue{color:var(--blue)}.amber{color:var(--amber)}
-.tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}.tab{padding:9px 12px;border:1px solid var(--line);border-radius:9px;color:var(--muted);cursor:pointer}
-.tab.active{border-color:#7c9dff;color:white;background:#1a2b49}.tablewrap{overflow-x:auto}
-table{border-collapse:collapse;width:100%;min-width:1320px}th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);font-size:12px;white-space:nowrap}
-th{color:var(--muted);font-weight:600}.pill{display:inline-block;padding:4px 7px;border-radius:6px;font-weight:750;font-size:10px}
-.pill.long{background:#123d32;color:#65e4b5}.pill.short{background:#4a202b;color:#ff9eaa}.pill.neutral{background:#263750;color:#b7c5d8}
-.pill.near,.pill.wait{background:#49391d;color:#ffd27a}.pill.ready{background:#174b39;color:#7df0bd}.pill.confirm{background:#203b63;color:#9bc5ff}
-.empty{text-align:center;color:var(--muted);padding:25px}.note{font-size:12px;line-height:1.65;color:var(--muted)}.note strong{color:var(--text)}
-.progress{height:5px;background:#263750;border-radius:9px;overflow:hidden;margin-top:9px}.bar{height:100%;width:0;background:#6ba8ff;transition:width .2s}
-.checkline{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:12px;margin-top:10px}.checkline input{width:auto}
-@media(min-width:720px){.controls{grid-template-columns:repeat(4,minmax(0,1fr))}.stats{grid-template-columns:repeat(4,1fr)}}
-</style></head><body>
-<header><h1>SMC MARKET SCANNER V3</h1><p>Binance USDⓈ-M Futures · BOS / CHoCH / Order Block / EQH-EQL · 1H + 4H · LONG & SHORT</p></header>
-<main>
-<section class="panel"><div class="controls">
-<div class="field"><label>Jarak OB “Mendekati” (%)</label><input id="nearPct" type="number" min="0.05" max="5" step="0.05" value="0.30"></div>
-<div class="field"><label>Umur maksimum OB (candle)</label><input id="age" type="number" min="10" max="300" value="100"></div>
-<div class="field"><label>Jumlah pair maksimum (0 = semua)</label><input id="maxPairs" type="number" min="0" max="600" value="0"></div>
-<div class="field"><label>Koneksi scan</label><select id="workers"><option value="4">Stabil (4)</option><option value="6" selected>Normal (6)</option><option value="8">Cepat (8)</option></select></div>
-<div class="field"><label>Pivot internal (kiri/kanan)</label><input id="internalLen" type="number" min="2" max="12" value="5"></div>
-<div class="field"><label>Pivot swing (kiri/kanan)</label><input id="swingLen" type="number" min="5" max="30" value="10"></div>
-<div class="field"><label>EQH/EQL threshold (%)</label><input id="eqPct" type="number" min="0.02" max="1" step="0.01" value="0.10"></div>
-<div class="field"><label>Jumlah OB aktif per sisi</label><input id="obCount" type="number" min="1" max="5" value="5"></div>
-</div><div class="checkline"><input id="showEQ" type="checkbox" checked><label for="showEQ">Aktifkan deteksi Equal High / Equal Low</label></div>
-<button id="scan">MULAI SCAN SMC</button><button id="auto" class="secondary">Auto scan: OFF (5 menit)</button>
-<div class="status" id="status">Siap. Gunakan candle yang sudah close. Sinyal adalah kandidat analisis, bukan perintah entry otomatis.</div><div class="progress"><div class="bar" id="bar"></div></div></section>
-<section class="panel stats">
-<div class="stat"><span class="green">Bullish structure</span><b id="bull">0</b><small>pair / timeframe</small></div>
-<div class="stat"><span class="red">Bearish structure</span><b id="bear">0</b><small>pair / timeframe</small></div>
-<div class="stat"><span class="green">Bullish OB di dalam/dekat</span><b id="bullob">0</b><small>zona kandidat</small></div>
-<div class="stat"><span class="red">Bearish OB di dalam/dekat</span><b id="bearob">0</b><small>zona kandidat</small></div></section>
-<section class="panel"><div class="tabs" id="tabs">
-<div class="tab active" data-view="all">Semua <span id="nall">0</span></div><div class="tab" data-view="bull">Bullish <span id="nbull">0</span></div>
-<div class="tab" data-view="bear">Bearish <span id="nbear">0</span></div><div class="tab" data-view="inside">OB di dalam <span id="ninside">0</span></div>
-<div class="tab" data-view="near">OB mendekati <span id="nnear">0</span></div><div class="tab" data-view="change">CHoCH terbaru <span id="nchange">0</span></div>
-<div class="tab" data-view="eq">EQH/EQL <span id="neq">0</span></div><div class="tab" data-view="ready">SIAP ENTRY <span id="nready">0</span></div>
-</div><div class="tablewrap"><table><thead><tr><th>Pair</th><th>TF</th><th>Bias swing</th><th>Struktur internal</th><th>Event swing</th><th>Event internal</th><th>OB aktif</th><th>Status OB</th><th>Sinyal</th><th>Alasan</th><th>Batas bawah</th><th>Batas atas</th><th>EQH/EQL</th><th>Strong / Weak</th></tr></thead>
-<tbody id="rows"><tr><td colspan="14" class="empty">Belum ada hasil scan.</td></tr></tbody></table></div></section>
-<section class="panel note"><strong>Panduan sinyal:</strong><br>
-• <strong>PANTAU:</strong> syarat awal belum lengkap atau harga belum memberi rejection valid.<br>
-• <strong>MENUNGGU BOS:</strong> harga menyentuh OB dan rejection searah terbentuk, tetapi BOS lanjutan belum ada.<br>
-• <strong>TERKONFIRMASI:</strong> BOS lanjutan searah sudah terjadi, tetapi sudah tidak baru atau harga menjauh dari OB.<br>
-• <strong>SIAP ENTRY:</strong> CHoCH searah mendahului OB, harga menyentuh OB, rejection close searah di luar zona, lalu BOS searah muncul dalam maksimal 2 candle terakhir dan harga masih di dalam/dekat OB.<br><br>
-<strong>Catatan:</strong> Semua pemeriksaan memakai candle yang sudah tutup. SIAP ENTRY hanya berarti syarat teknis scanner terpenuhi, bukan jaminan profit. Tetap periksa chart, spread, volatilitas, stop-loss, dan risiko. Pivot perlu candle kanan untuk konfirmasi sehingga sinyal dapat terlambat. Ini pendekatan SMC independen; FVG dan MACD tidak digunakan.</section>
-</main>
+:root{--bg:#0b1020;--panel:#121a2d;--panel2:#18233b;--line:#263653;--text:#eaf0ff;--muted:#9aa9c4;--green:#31d69a;--red:#ff667d;--yellow:#ffc857;--blue:#75a7ff}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#0b1020,#101a2d);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial}
+.wrap{max-width:1180px;margin:auto;padding:18px}.head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+h1{font-size:23px;margin:0}.sub{color:var(--muted);margin-top:4px}.pill{border:1px solid var(--line);padding:7px 11px;border-radius:999px;color:var(--muted);font-size:12px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.btn,select,input{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px 12px}.btn{cursor:pointer;font-weight:650}.btn.primary{background:#2454a6;border-color:#3974d5}.btn:disabled{opacity:.5;cursor:wait}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}.stat,.card,.section{background:rgba(18,26,45,.94);border:1px solid var(--line);border-radius:14px;padding:14px}.stat b{display:block;font-size:22px}.stat span{color:var(--muted);font-size:12px}
+.notice{padding:11px 13px;border:1px solid #66552d;background:#2a2417;color:#ffdfa0;border-radius:10px;margin:12px 0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.section h2{font-size:16px;margin:0 0 10px}.section h2 small{color:var(--muted);font-weight:400}
+.coin{padding:12px 0;border-top:1px solid var(--line)}.coin:first-of-type{border-top:0}.coinhead{display:flex;justify-content:space-between;gap:8px;align-items:center}.symbol{font-weight:800;font-size:15px}.score{font-weight:800;font-size:17px}.green{color:var(--green)}.red{color:var(--red)}.yellow{color:var(--yellow)}.muted{color:var(--muted)}
+.tags{display:flex;gap:5px;flex-wrap:wrap;margin:7px 0}.tag{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:3px 7px;color:#c4d2ed}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}.metric{background:var(--panel2);padding:7px;border-radius:8px}.metric span{display:block;color:var(--muted);font-size:10px}.metric b{font-size:12px}
+.empty{color:var(--muted);padding:18px 0}.foot{color:var(--muted);font-size:12px;margin:16px 2px}.status{color:var(--blue);font-size:12px}
+@media(max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}h1{font-size:20px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div><h1>🐋 WHALE INTELLIGENCE</h1><div class="sub">Early activity · calon BIG MOVE · Binance USDT Perpetual</div></div>
+    <div class="pill" id="lastUpdate">Belum diperbarui</div>
+  </div>
+  <div class="controls">
+    <button class="btn primary" id="scanBtn">⟳ MULAI / SCAN ULANG</button>
+    <select id="universe"><option value="80">Pantau 80 kandidat likuid</option><option value="120">Pantau 120 kandidat</option><option value="50">Pantau 50 kandidat (lebih cepat)</option></select>
+    <select id="minVol"><option value="20000000">Min volume 24J: $20 juta</option><option value="50000000" selected>Min volume 24J: $50 juta</option><option value="100000000">Min volume 24J: $100 juta</option><option value="0">Tanpa batas volume</option></select>
+    <button class="btn" id="autoBtn">Auto-refresh: OFF</button>
+  </div>
+  <div class="stats">
+    <div class="stat"><b id="scanned">0</b><span>Coin dianalisis</span></div>
+    <div class="stat"><b id="active">0</b><span>Aktivitas meningkat</span></div>
+    <div class="stat"><b id="longN" class="green">0</b><span>Kandidat LONG</span></div>
+    <div class="stat"><b id="shortN" class="red">0</b><span>Kandidat SHORT</span></div>
+  </div>
+  <div class="notice"><b>Catatan:</b> skor adalah peringkat indikasi, bukan bukti transaksi whale dan bukan sinyal entry otomatis. Tunggu candle 1H selesai dan periksa chart 15M sebelum mengambil keputusan.</div>
+  <div class="status" id="status">Tekan MULAI / SCAN ULANG untuk mengambil data pasar.</div>
+  <div class="grid" style="margin-top:12px">
+    <section class="section"><h2 class="green">▲ EARLY LONG <small>3 kandidat terbaik</small></h2><div id="longList" class="empty">Belum ada hasil scan.</div></section>
+    <section class="section"><h2 class="red">▼ EARLY SHORT <small>3 kandidat terbaik</small></h2><div id="shortList" class="empty">Belum ada hasil scan.</div></section>
+  </div>
+  <section class="section" style="margin-top:12px"><h2>📡 WATCHLIST AKTIVITAS <small>coin yang mulai tidak biasa</small></h2><div id="watchList" class="empty">Belum ada hasil scan.</div></section>
+  <div class="foot">
+    Data publik Binance Futures. Scanner mengambil gabungan coin bervolume besar dan Top Gainer/Loser, lalu memeriksa candle 1H. OI diperiksa hanya pada kandidat teratas untuk mengurangi beban API. Data browser dapat gagal jika akses API/CORS atau koneksi dibatasi.
+  </div>
+</div>
 <script>
-const API='https://fapi.binance.com', $=id=>document.getElementById(id);
-let running=false,autoTimer=null,allRows=[],view='all';
-const fmt=x=>Number(x).toLocaleString('en-US',{maximumFractionDigits:10});
-async function getJSON(url){const r=await fetch(url);if(!r.ok)throw Error('HTTP '+r.status);return r.json()}
-function pivots(c,len){const highs=[],lows=[];for(let i=len;i<c.length-len;i++){let h=true,l=true;for(let j=i-len;j<=i+len;j++){if(j===i)continue;if(c[j].h>c[i].h)h=false;if(c[j].l<c[i].l)l=false}if(h)highs.push({i,p:c[i].h,t:c[i].t});if(l)lows.push({i,p:c[i].l,t:c[i].t})}return{highs,lows}}
-function structure(c,len){const pv=pivots(c,len),events=[];let bias=0,lastH=null,lastL=null,usedH=-1,usedL=-1;for(let i=0;i<c.length;i++){const ph=pv.highs.find(x=>x.i===i-len);if(ph)lastH=ph;const pl=pv.lows.find(x=>x.i===i-len);if(pl)lastL=pl;const bar=c[i];if(lastH&&i>lastH.i+len&&bar.c>lastH.p&&usedH!==lastH.i){const type=bias===-1?'CHoCH':'BOS';events.push({i,t:bar.t,side:'BULL',type,level:lastH.p});bias=1;usedH=lastH.i}if(lastL&&i>lastL.i+len&&bar.c<lastL.p&&usedL!==lastL.i){const type=bias===1?'CHoCH':'BOS';events.push({i,t:bar.t,side:'BEAR',type,level:lastL.p});bias=-1;usedL=lastL.i}}return{...pv,events,bias,lastHigh:lastH,lastLow:lastL}}
-function makeOB(c,st,maxAge,maxCount){let zones=[];for(const ev of st.events){if(c.length-1-ev.i>maxAge)continue;let src=-1;for(let j=ev.i-1;j>=Math.max(0,ev.i-12);j--){if(ev.side==='BULL'&&c[j].c<c[j].o){src=j;break}if(ev.side==='BEAR'&&c[j].c>c[j].o){src=j;break}}if(src<0)continue;const zc=c[src];let invalid=false;for(let k=src+1;k<c.length;k++){if(ev.side==='BULL'&&c[k].l<zc.l){invalid=true;break}if(ev.side==='BEAR'&&c[k].h>zc.h){invalid=true;break}}if(!invalid)zones.push({side:ev.side,lo:zc.l,hi:zc.h,source:src,event:ev.i,age:c.length-1-src,eventType:ev.type,time:ev.t})}const unique=[];for(const z of zones.sort((a,b)=>b.event-a.event)){if(!unique.some(x=>x.source===z.source&&x.side===z.side))unique.push(z)}return{bull:unique.filter(x=>x.side==='BULL').slice(0,maxCount),bear:unique.filter(x=>x.side==='BEAR').slice(0,maxCount)}}
-function eqLevels(pv,pct){let result=[];for(const [type,arr] of [['EQH',pv.highs],['EQL',pv.lows]])for(let i=1;i<arr.length;i++){const a=arr[i-1],b=arr[i],d=Math.abs(a.p-b.p)/((a.p+b.p)/2)*100;if(d<=pct)result.push({type,price:(a.p+b.p)/2,index:b.i})}return result.sort((a,b)=>b.index-a.index)[0]||null}
-function zoneStatus(price,z,pct){if(!z)return'—';if(price>=z.lo&&price<=z.hi)return'DI DALAM';const d=price<z.lo?(z.lo-price)/price*100:(price-z.hi)/price*100;return d<=pct?'MENDEKATI':'DI LUAR'}
-function latestEvent(st){return st.events.length?st.events[st.events.length-1]:null}
-function entrySignal(c,ins,ob,price,nearPct){
- if(!ob)return{status:'PANTAU',reason:'Belum ada OB aktif'};
- const prior=ins.events.filter(e=>e.type==='CHoCH'&&e.side===ob.side&&e.i<=ob.event).sort((a,b)=>b.i-a.i)[0];
- if(!prior)return{status:'PANTAU',reason:'Belum ada CHoCH searah sebelum OB'};
- let touched=false,reject=-1;
- for(let k=ob.event+1;k<c.length;k++){const hit=c[k].h>=ob.lo&&c[k].l<=ob.hi;if(!hit)continue;touched=true;const valid=ob.side==='BULL'?(c[k].c>c[k].o&&c[k].c>ob.hi):(c[k].c<c[k].o&&c[k].c<ob.lo);if(valid){reject=k;break}}
- if(reject<0)return{status:'PANTAU',reason:touched?'OB tersentuh; menunggu rejection valid':'Menunggu harga menyentuh OB'};
- let bos=null;for(const e of ins.events)if(e.i>reject&&e.type==='BOS'&&e.side===ob.side&&(!bos||e.i>bos.i))bos=e;
- if(!bos)return{status:'MENUNGGU BOS',reason:'Rejection searah sudah terbentuk'};
- const fresh=c.length-1-bos.i<=2,loc=zoneStatus(price,ob,nearPct);
- if(fresh&&loc!=='DI LUAR')return{status:'SIAP ENTRY',reason:'CHoCH + sentuh OB + rejection + BOS baru'};
- return{status:'TERKONFIRMASI',reason:fresh?'Harga sudah menjauh dari OB':'BOS lebih dari 2 candle lalu'}
+const API='https://fapi.binance.com';
+let busy=false, autoTimer=null;
+const $=id=>document.getElementById(id);
+const fmt=(n,d=2)=>Number.isFinite(n)?n.toLocaleString('en-US',{maximumFractionDigits:d}):'—';
+const pct=n=>(n>=0?'+':'')+fmt(n)+'%';
+async function get(url){
+  const r=await fetch(url,{cache:'no-store'});
+  if(!r.ok) throw new Error('HTTP '+r.status+' '+url);
+  return r.json();
 }
-function analyze(symbol,tf,c,price,opts){const ins=structure(c,opts.internalLen),sw=structure(c,opts.swingLen),obs=makeOB(c,ins,opts.age,opts.obCount),all=[...obs.bull,...obs.bear].sort((a,b)=>b.event-a.event),active=all[0]||null,status=zoneStatus(price,active,opts.nearPct),signal=entrySignal(c,ins,active,price,opts.nearPct),eq=opts.showEQ?eqLevels(sw,opts.eqPct):null,lastS=latestEvent(sw),lastI=latestEvent(ins),strongWeak=sw.bias===1?'Strong Low / Weak High':sw.bias===-1?'Strong High / Weak Low':'Belum terbentuk';return{symbol,tf,bias:sw.bias,internalBias:ins.bias,swingEvent:lastS,internalEvent:lastI,ob:active,status,signal,eq,strongWeak,price}}
-function render(){
- const arr=allRows.filter(x=>{if(view==='bull')return x.bias===1;if(view==='bear')return x.bias===-1;if(view==='inside')return x.status==='DI DALAM';if(view==='near')return x.status==='MENDEKATI';if(view==='change')return(x.swingEvent&&x.swingEvent.type==='CHoCH')||(x.internalEvent&&x.internalEvent.type==='CHoCH');if(view==='eq')return!!x.eq;if(view==='ready')return x.signal&&x.signal.status==='SIAP ENTRY';return true});
- const rank={'DI DALAM':0,'MENDEKATI':1,'DI LUAR':2,'—':3};arr.sort((a,b)=>rank[a.status]-rank[b.status]||a.symbol.localeCompare(b.symbol));
- $('rows').innerHTML=arr.length?arr.map(x=>{const ev=e=>e?`${e.type} ${e.side}`:'—',bias=x.bias===1?'BULLISH':x.bias===-1?'BEARISH':'NETRAL',ib=x.internalBias===1?'BULLISH':x.internalBias===-1?'BEARISH':'NETRAL',sig=x.signal||{status:'PANTAU',reason:'Belum dianalisis'},cl=sig.status==='SIAP ENTRY'?'ready':sig.status==='MENUNGGU BOS'?'wait':sig.status==='TERKONFIRMASI'?'confirm':'neutral';return `<tr><td><b>${x.symbol}</b></td><td>${x.tf}</td><td><span class="pill ${x.bias===1?'long':x.bias===-1?'short':'neutral'}">${bias}</span></td><td>${ib}</td><td>${ev(x.swingEvent)}</td><td>${ev(x.internalEvent)}</td><td>${x.ob?x.ob.side+' OB':'—'}</td><td><span class="pill ${x.status==='DI DALAM'?'long':x.status==='MENDEKATI'?'near':'neutral'}">${x.status}</span></td><td><span class="pill ${cl}">${sig.status}</span></td><td>${sig.reason}</td><td>${x.ob?fmt(x.ob.lo):'—'}</td><td>${x.ob?fmt(x.ob.hi):'—'}</td><td>${x.eq?x.eq.type+' '+fmt(x.eq.price):'—'}</td><td>${x.strongWeak}</td></tr>`}).join(''):'<tr><td colspan="14" class="empty">Tidak ada hasil pada kategori ini.</td></tr>';
- $('nall').textContent=allRows.length;$('nbull').textContent=allRows.filter(x=>x.bias===1).length;$('nbear').textContent=allRows.filter(x=>x.bias===-1).length;$('ninside').textContent=allRows.filter(x=>x.status==='DI DALAM').length;$('nnear').textContent=allRows.filter(x=>x.status==='MENDEKATI').length;$('nchange').textContent=allRows.filter(x=>(x.swingEvent&&x.swingEvent.type==='CHoCH')||(x.internalEvent&&x.internalEvent.type==='CHoCH')).length;$('neq').textContent=allRows.filter(x=>x.eq).length;$('nready').textContent=allRows.filter(x=>x.signal&&x.signal.status==='SIAP ENTRY').length;
- $('bull').textContent=allRows.filter(x=>x.bias===1).length;$('bear').textContent=allRows.filter(x=>x.bias===-1).length;$('bullob').textContent=allRows.filter(x=>x.ob&&x.ob.side==='BULL'&&x.status!=='DI LUAR').length;$('bearob').textContent=allRows.filter(x=>x.ob&&x.ob.side==='BEAR'&&x.status!=='DI LUAR').length;
- document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.view===view))
+async function pool(items,limit,fn){
+  let i=0,out=[];
+  const workers=Array.from({length:Math.min(limit,items.length)},async()=>{
+    while(i<items.length){const k=i++;try{out[k]=await fn(items[k]);}catch(e){out[k]=null;}}
+  });
+  await Promise.all(workers);return out.filter(Boolean);
 }
-$('tabs').addEventListener('click',e=>{const t=e.target.closest('.tab');if(t){view=t.dataset.view;render()}});
+function analyzeKlines(k){
+  if(!k||k.length<25)return null;
+  const closed=k.slice(0,-1), last=closed.at(-1), prev=closed.slice(-20,-1);
+  const closes=closed.map(x=>+x[4]), highs=closed.map(x=>+x[2]), lows=closed.map(x=>+x[3]);
+  const vol=+last[5], avgVol=prev.reduce((s,x)=>s+(+x[5]),0)/Math.max(1,prev.length);
+  const range=(+last[2]-+last[3])/(+last[4]||1)*100;
+  const prevRange=prev.reduce((s,x)=>s+((+x[2]-+x[3])/(+x[4]||1)*100),0)/Math.max(1,prev.length);
+  const change=(+last[4]/(+last[1]||+last[4])-1)*100;
+  const ema=(arr,p)=>{let a=arr.slice(0,p).reduce((s,v)=>s+v,0)/p;for(let j=p;j<arr.length;j++)a=arr[j]*(2/(p+1))+a*(1-2/(p+1));return a;};
+  const e9=ema(closes,9),e21=ema(closes,21);
+  const recentHigh=Math.max(...highs.slice(-8,-1)),recentLow=Math.min(...lows.slice(-8,-1));
+  const breakoutUp=+last[4]>recentHigh,breakoutDown=+last[4]<recentLow;
+  return {change,volRatio:avgVol?vol/avgVol:0,rangeRatio:prevRange?range/prevRange:0,e9,e21,close:+last[4],breakoutUp,breakoutDown,high:recentHigh,low:recentLow};
+}
+async function getOI(symbol){
+  try{
+    const a=await get(`${API}/futures/data/openInterestHist?symbol=${symbol}&period=1h&limit=3`);
+    if(a.length>=2){const old=+a[a.length-2].sumOpenInterest,now=+a[a.length-1].sumOpenInterest;return old?((now/old)-1)*100:NaN;}
+  }catch(e){}
+  return NaN;
+}
+function score(c){
+  let s=0;
+  // Aktivitas: volume relatif dan range expansion
+  if(c.volRatio>=1.5)s+=Math.min(15,7+(c.volRatio-1.5)*4);
+  if(c.rangeRatio>=1.3)s+=Math.min(10,5+(c.rangeRatio-1.3)*8);
+  // OI hanya bukti tambahan, bukan penentu tunggal
+  if(Number.isFinite(c.oiChange)){if(c.oiChange>0.5)s+=Math.min(15,5+c.oiChange*2);else if(c.oiChange<-.5)s+=4;}
+  if(c.breakoutUp||c.breakoutDown)s+=15;
+  if(Math.abs(c.change)>=0.35)s+=Math.min(15,Math.abs(c.change)*5);
+  if(c.directional)s+=10;
+  if(c.liquid)s+=10;
+  return Math.min(100,Math.round(s));
+}
+function card(c,side){
+  const cls=side==='LONG'?'green':'red';
+  const labels=[];
+  if(c.volRatio>=1.5)labels.push('Volume '+fmt(c.volRatio,1)+'×');
+  if(c.rangeRatio>=1.3)labels.push('Range melebar');
+  if(Number.isFinite(c.oiChange))labels.push('OI '+pct(c.oiChange));
+  if(c.breakoutUp)labels.push('Break high 1H');
+  if(c.breakoutDown)labels.push('Break low 1H');
+  if(c.emaBull)labels.push('EMA 9 > 21');
+  if(c.emaBear)labels.push('EMA 9 < 21');
+  return `<div class="coin"><div class="coinhead"><div><span class="symbol">${c.symbol}</span> <span class="muted">${side}</span></div><div class="score ${cls}">${c.score}/100</div></div><div class="tags">${labels.map(x=>`<span class="tag">${x}</span>`).join('')||'<span class="tag">Aktivitas awal</span>'}</div><div class="metrics"><div class="metric"><span>Perubahan 1H</span><b class="${c.change>=0?'green':'red'}">${pct(c.change)}</b></div><div class="metric"><span>Volume relatif</span><b>${fmt(c.volRatio,2)}×</b></div><div class="metric"><span>OI 1H</span><b>${pct(c.oiChange)}</b></div><div class="metric"><span>Volume 24J</span><b>$${fmt(c.quoteVol/1e6,1)}M</b></div></div><div class="muted" style="font-size:11px;margin-top:7px">${c.status}</div></div>`;
+}
 async function scan(){
- if(running)return;running=true;$('scan').disabled=true;$('bar').style.width='0%';allRows=[];
+ if(busy)return;busy=true;$('scanBtn').disabled=true;$('status').textContent='Mengambil daftar kontrak dan data pasar…';
  try{
-  const [info,tickers]=await Promise.all([getJSON(API+'/fapi/v1/exchangeInfo'),getJSON(API+'/fapi/v1/ticker/price')]),prices=new Map(tickers.map(x=>[x.symbol,Number(x.price)]));
-  let symbols=info.symbols.filter(s=>s.status==='TRADING'&&s.contractType==='PERPETUAL'&&s.quoteAsset==='USDT').map(s=>s.symbol),cap=Number($('maxPairs').value)||0;if(cap>0)symbols=symbols.slice(0,cap);
-  const opts={nearPct:Number($('nearPct').value)||.3,age:Math.max(10,Number($('age').value)||100),internalLen:Math.max(2,Number($('internalLen').value)||5),swingLen:Math.max(5,Number($('swingLen').value)||10),eqPct:Number($('eqPct').value)||.1,obCount:Math.max(1,Math.min(5,Number($('obCount').value)||5)),showEQ:$('showEQ').checked};
-  let done=0,idx=0,found=[];const concurrency=Number($('workers').value);$('status').textContent=`Memindai ${symbols.length} pair pada 1H dan 4H…`;
-  async function worker(){while(true){const n=idx++;if(n>=symbols.length)return;const symbol=symbols[n],price=prices.get(symbol);if(price){for(const tf of ['1h','4h']){try{const raw=await getJSON(`${API}/fapi/v1/klines?symbol=${symbol}&interval=${tf}&limit=240`),closed=raw.slice(0,-1).map(k=>({t:+k[0],o:+k[1],h:+k[2],l:+k[3],c:+k[4]}));if(closed.length>60)found.push(analyze(symbol,tf.toUpperCase(),closed,price,opts))}catch(err){}}}done++;if(done%4===0||done===symbols.length){$('bar').style.width=(done/symbols.length*100).toFixed(1)+'%';$('status').textContent=`Memindai ${done}/${symbols.length} pair…`}}}
-  await Promise.all(Array.from({length:concurrency},worker));allRows=found;render();$('status').textContent=`Selesai: ${symbols.length} pair diproses; ${found.length} baris analisis 1H/4H. Diperbarui ${new Date().toLocaleTimeString('id-ID')}.`;
- }catch(e){$('status').textContent='Gagal mengambil data Binance: '+(e.message||'periksa koneksi/CORS lalu coba lagi')}finally{running=false;$('scan').disabled=false}
+  const [info,tickers]=await Promise.all([get(API+'/fapi/v1/exchangeInfo'),get(API+'/fapi/v1/ticker/24hr')]);
+  const valid=new Set(info.symbols.filter(x=>x.status==='TRADING'&&x.contractType==='PERPETUAL'&&x.quoteAsset==='USDT').map(x=>x.symbol));
+  const minVol=+$('minVol').value;
+  const rows=tickers.filter(t=>valid.has(t.symbol)&&+t.quoteVolume>=minVol);
+  const byVol=[...rows].sort((a,b)=>+b.quoteVolume-+a.quoteVolume);
+  const gain=[...rows].sort((a,b)=>+b.priceChangePercent-+a.priceChangePercent).slice(0,25);
+  const loss=[...rows].sort((a,b)=>+a.priceChangePercent-+b.priceChangePercent).slice(0,25);
+  const chosen=new Map();
+  [...byVol.slice(0,+$('universe').value),...gain,...loss].forEach(t=>chosen.set(t.symbol,t));
+  const candidates=[...chosen.values()];
+  $('status').textContent=`Memeriksa candle 1H ${candidates.length} coin…`;
+  const base=await pool(candidates,6,async t=>{
+    const k=await get(`${API}/fapi/v1/klines?symbol=${t.symbol}&interval=1h&limit=30`);
+    const a=analyzeKlines(k);if(!a)return null;
+    return {...a,symbol:t.symbol,quoteVol:+t.quoteVolume,change24:+t.priceChangePercent};
+  });
+  // OI diperiksa hanya pada 18 kandidat dengan aktivitas paling menonjol.
+  const oiTargets=[...base].sort((a,b)=>(b.volRatio+b.rangeRatio+Math.abs(b.change))-(a.volRatio+a.rangeRatio+Math.abs(a.change))).slice(0,18);
+  const oiMap=new Map();
+  await pool(oiTargets,3,async c=>{oiMap.set(c.symbol,await getOI(c.symbol));return c;});
+  base.forEach(c=>{
+    c.oiChange=oiMap.has(c.symbol)?oiMap.get(c.symbol):NaN;
+    c.emaBull=c.e9>c.e21;c.emaBear=c.e9<c.e21;
+    c.directional=Math.abs(c.change)>=0.25&&(c.emaBull||c.emaBear);
+    c.liquid=c.quoteVol>=50000000;
+    c.score=score(c);
+    c.side=c.change>=0?'LONG':'SHORT';
+    c.status=c.score>=65?'Aktivitas kuat — periksa chart':c.score>=45?'Mulai aktif — tunggu konfirmasi':'Pantau dahulu, belum matang';
+  });
+  const longs=base.filter(c=>c.side==='LONG').sort((a,b)=>b.score-a.score).slice(0,3);
+  const shorts=base.filter(c=>c.side==='SHORT').sort((a,b)=>b.score-a.score).slice(0,3);
+  const watch=base.filter(c=>c.score>=35).sort((a,b)=>b.score-a.score).slice(0,12);
+  $('longList').innerHTML=longs.length?longs.map(c=>card(c,'LONG')).join(''):'<div class="empty">Belum ada kandidat LONG yang memenuhi kriteria.</div>';
+  $('shortList').innerHTML=shorts.length?shorts.map(c=>card(c,'SHORT')).join(''):'<div class="empty">Belum ada kandidat SHORT yang memenuhi kriteria.</div>';
+  $('watchList').innerHTML=watch.length?watch.map(c=>card(c,c.side)).join(''):'<div class="empty">Belum ditemukan aktivitas menonjol.</div>';
+  $('scanned').textContent=base.length;
+  $('active').textContent=base.filter(c=>c.score>=35).length;
+  $('longN').textContent=longs.length;$('shortN').textContent=shorts.length;
+  $('lastUpdate').textContent='Update '+new Date().toLocaleTimeString('id-ID');
+  $('status').textContent='Scan selesai. Hasil diurutkan berdasarkan skor aktivitas dan momentum.';
+ }catch(e){$('status').textContent='Gagal mengambil data: '+e.message+'. Coba lagi beberapa saat atau buka melalui browser yang mengizinkan akses Binance API.';}
+ finally{busy=false;$('scanBtn').disabled=false;}
 }
-$('scan').addEventListener('click',scan);
-$('auto').addEventListener('click',()=>{if(autoTimer){clearInterval(autoTimer);autoTimer=null;$('auto').textContent='Auto scan: OFF (5 menit)'}else{autoTimer=setInterval(scan,5*60*1000);$('auto').textContent='Auto scan: ON (5 menit)';scan()}});
-</script></body></html>
+$('scanBtn').addEventListener('click',scan);
+$('autoBtn').addEventListener('click',()=>{
+ if(autoTimer){clearInterval(autoTimer);autoTimer=null;$('autoBtn').textContent='Auto-refresh: OFF';}
+ else{autoTimer=setInterval(scan,5*60*1000);$('autoBtn').textContent='Auto-refresh: ON (5 menit)';scan();}
+});
+</script>
+</body>
+</html>
